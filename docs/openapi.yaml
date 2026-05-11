@@ -1,0 +1,288 @@
+openapi: 3.1.0
+
+info:
+  title: Kaspi POS Payments API
+  version: 1.0.0
+  description: |
+    Публичный API для приёма платежей через Kaspi Pay.
+
+    ## Авторизация
+
+    Каждая **касса** получает свой `X-Cashier-Token` (64 hex символа).
+    Токен выдаётся в кабинете магазина после подключения Kaspi-кассира по SMS
+    (на вкладке «Kaspi-кассиры»). Один токен = одна касса.
+
+    Все запросы ниже требуют заголовок:
+    ```
+    X-Cashier-Token: <64-hex>
+    ```
+
+    Перевыпустить токен можно из кабинета магазина — старый сразу
+    перестаёт работать.
+
+    ## Жизненный цикл платежа
+
+    1. Создать платёж (`POST /api/pay/qr` или `POST /api/pay/invoice`) →
+       получить `id` и сразу же поллить статус.
+    2. Поллить `GET /api/pay/status?id=&type=` каждые 3 секунды до `final: true`.
+    3. На терминальном статусе обработать результат:
+       - `success` — деньги пришли, печатать чек.
+       - `failed` — клиент отменил/отказ.
+       - `expired` — клиент не оплатил вовремя.
+    4. Возврат — `POST /api/pay/refund {id, amount}` (только для QR).
+
+servers:
+  - url: http://localhost:8080
+    description: Local dev
+
+security:
+  - CashierToken: []
+
+tags:
+  - name: Pay
+    description: Создание платежей, статус, отмена, возврат, история операций кассы.
+
+# ─── Endpoints ──────────────────────────────────────────────────
+
+paths:
+  /api/pay/qr:
+    post:
+      tags: [Pay]
+      summary: Создать QR-платёж
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount]
+              properties:
+                amount: { type: number, example: 500 }
+      responses:
+        '200':
+          description: QR создан
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:         { type: boolean, example: true }
+                  type:       { type: string,  example: qr }
+                  id:         { type: string,  example: "789012" }
+                  amount:     { type: number,  example: 500 }
+                  qrToken:    { type: string,  example: "https://pay.kaspi.kz/pay/abc123" }
+                  expireDate: { type: string,  example: "2026-05-11T05:00:00+0500" }
+                  status:     { type: string,  example: pending }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '502': { $ref: '#/components/responses/KaspiError' }
+
+  /api/pay/invoice:
+    post:
+      tags: [Pay]
+      summary: Счёт по номеру телефона (push клиенту)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phoneNumber, amount]
+              properties:
+                phoneNumber: { type: string, example: "77476444055", description: "11 цифр, с кодом страны (7XXXXXXXXXX)" }
+                amount:      { type: number, example: 1000 }
+                comment:     { type: string, example: "Оплата заказа #42" }
+      responses:
+        '200':
+          description: Счёт создан
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:           { type: boolean, example: true }
+                  type:         { type: string,  example: invoice }
+                  id:           { type: string,  example: "456789" }
+                  amount:       { type: number,  example: 1000 }
+                  phoneNumber:  { type: string,  example: "77476444055" }
+                  orderNumber:  { type: string,  example: "12345-67" }
+                  status:       { type: string,  example: pending }
+                  rawStatus:    { type: string,  example: RemotePaymentCreated }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '502': { $ref: '#/components/responses/KaspiError' }
+
+  /api/pay/status:
+    get:
+      tags: [Pay]
+      summary: Статус операции (поллить раз в 3 секунды до final=true)
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema: { type: string, example: "789012" }
+        - name: type
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [qr, invoice]
+            example: qr
+      responses:
+        '200':
+          description: Статус
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PayStatus' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '502': { $ref: '#/components/responses/KaspiError' }
+
+  /api/pay/cancel:
+    post:
+      tags: [Pay]
+      summary: Отменить счёт по номеру (QR отменить нельзя)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id, type]
+              properties:
+                id:   { type: string, example: "456789" }
+                type: { type: string, enum: [invoice], example: invoice }
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/Ok' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/pay/refund:
+    post:
+      tags: [Pay]
+      summary: Возврат по QR-операции (частичный или полный)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id, amount]
+              properties:
+                id:     { type: string, example: "789012", description: "ID исходного QR-платежа" }
+                amount: { type: number, example: 250,      description: "Сумма к возврату, ≤ исходной" }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:     { type: boolean, example: true }
+                  type:   { type: string, example: refund }
+                  id:     { type: string, example: "789012" }
+                  amount: { type: number, example: 250 }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '502': { $ref: '#/components/responses/KaspiError' }
+
+  /api/pay/history:
+    get:
+      tags: [Pay]
+      summary: История операций кассы (с пагинацией)
+      parameters:
+        - name: endDate
+          in: query
+          required: false
+          description: До какой даты (включая). По умолчанию — завтра.
+          schema: { type: string, format: date, example: "2026-05-12" }
+        - name: lastDate
+          in: query
+          required: false
+          description: Курсор для пагинации (из `lastDate` предыдущего ответа)
+          schema: { type: string, example: "" }
+        - name: period
+          in: query
+          required: false
+          schema: { type: integer, default: 0 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:       { type: boolean, example: true }
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/HistoryItem' }
+                  lastDate: { type: string, nullable: true }
+                  hasMore:  { type: boolean, example: false }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '502': { $ref: '#/components/responses/KaspiError' }
+
+# ─── Components ─────────────────────────────────────────────────
+
+components:
+  securitySchemes:
+    CashierToken:
+      type: apiKey
+      in: header
+      name: X-Cashier-Token
+      description: |
+        64-hex токен конкретной кассы. Выдаётся в кабинете магазина
+        после подключения кассира по SMS. Можно перевыпустить.
+
+  schemas:
+    PayStatus:
+      type: object
+      properties:
+        ok:          { type: boolean, example: true }
+        type:        { type: string, enum: [qr, invoice], example: qr }
+        id:          { type: string, example: "789012" }
+        status:      { type: string, enum: [pending, success, failed, expired, unknown], example: success }
+        rawStatus:   { type: string, example: Processed }
+        statusDesc:  { type: string, nullable: true }
+        amount:      { type: number, example: 500 }
+        paid:        { type: boolean, example: true, description: "true когда status=success" }
+        final:       { type: boolean, example: true, description: "true → поллить дальше не нужно" }
+        receiptUrl:  { type: string, nullable: true }
+        orderNumber: { type: string, nullable: true }
+
+    HistoryItem:
+      type: object
+      properties:
+        id:          { type: string, example: "789012" }
+        type:        { type: string, enum: [qr, invoice], example: qr }
+        amount:      { type: number, example: 500 }
+        date:        { type: string, example: "2026-05-11T04:55:04+0500" }
+        status:      { type: string, enum: [pending, success, failed, expired, unknown], example: success }
+        rawStatus:   { type: string, example: Processed }
+        statusDesc:  { type: string, nullable: true }
+        clientName:  { type: string, nullable: true }
+        phoneNumber: { type: string, nullable: true }
+        final:       { type: boolean, example: true }
+
+    Ok:
+      type: object
+      properties:
+        ok: { type: boolean, example: true }
+
+    Error:
+      type: object
+      properties:
+        error: { type: string, example: "Invalid cashier token." }
+
+  responses:
+    Unauthorized:
+      description: Нет/невалидный `X-Cashier-Token` либо касса не активна
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    KaspiError:
+      description: Каспи вернул ошибку (текст в `error`, сырое тело в `kaspi`)
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              ok:    { type: boolean, example: false }
+              error: { type: string, example: "Превышено время ожидания" }
+              kaspi: { type: object }

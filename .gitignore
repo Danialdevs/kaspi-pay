@@ -1,0 +1,10 @@
+.env
+vendor/
+data/device.json
+data/keypair.json
+data/ecdh-keypair.json
+data/webhooks.json
+data/tracked-payments.json
+data/webhook-retries.json
+data/logs/
+*.log
