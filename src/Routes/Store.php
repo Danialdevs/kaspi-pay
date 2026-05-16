@@ -46,6 +46,7 @@ final class Store
                 'description' => $p['description'],
                 'price'       => (float)$p['price'],
                 'image_url'   => $p['image_url'],
+                'images'      => $p['images'] ?? [],
             ], $products),
         ]);
     }

@@ -19,7 +19,7 @@
   };
 
   const show = (id) => {
-    ['catalogSection', 'formSection', 'paySection', 'invSection', 'doneSection', 'failSection'].forEach((s) => {
+    ['catalogSection', 'productSection', 'formSection', 'paySection', 'invSection', 'doneSection', 'failSection'].forEach((s) => {
       $(s).classList.toggle('hidden', s !== id);
     });
     stopPolling();
@@ -60,11 +60,50 @@
   const selectProduct = (pid) => {
     selected = products.find((p) => p.id === pid);
     if (!selected) return;
+    renderProductDetail(selected);
+    show('productSection');
+  };
+
+  const renderProductDetail = (p) => {
+    $('prodTitle').textContent = p.name;
+    $('prodPriceLabel').textContent = formatPrice(p.price);
+    $('prodDescription').textContent = p.description || '';
+
+    const imgs = (Array.isArray(p.images) && p.images.length) ? p.images : (p.image_url ? [p.image_url] : []);
+    const inner = $('prodCarouselInner');
+    const thumbs = $('prodThumbs');
+    if (!imgs.length) {
+      inner.innerHTML = '<div class="carousel-item active"><div class="gallery-placeholder"></div></div>';
+      thumbs.innerHTML = '';
+    } else {
+      inner.innerHTML = imgs.map((src, i) => `
+        <div class="carousel-item ${i === 0 ? 'active' : ''}">
+          <img src="${escapeAttr(src)}" alt="${escapeAttr(p.name)}" loading="lazy">
+        </div>`).join('');
+      thumbs.innerHTML = imgs.length > 1 ? imgs.map((src, i) => `
+        <div class="thumb ${i === 0 ? 'active' : ''}" data-idx="${i}" style="background-image:url('${escapeAttr(src)}')"></div>`).join('') : '';
+      thumbs.querySelectorAll('.thumb').forEach((el) => {
+        el.addEventListener('click', () => {
+          const idx = parseInt(el.dataset.idx, 10);
+          const carousel = bootstrap.Carousel.getOrCreateInstance($('prodCarousel'));
+          carousel.to(idx);
+          thumbs.querySelectorAll('.thumb').forEach((t) => t.classList.toggle('active', t === el));
+        });
+      });
+    }
+    $('prodCarousel').querySelectorAll('.carousel-control-prev, .carousel-control-next').forEach((c) => {
+      c.classList.toggle('hidden', imgs.length <= 1);
+    });
+  };
+
+  const goToForm = () => {
+    if (!selected) return;
     $('selectedName').textContent = selected.name;
     $('selectedPrice').textContent = formatPrice(selected.price);
     const img = $('selectedImg');
-    if (selected.image_url) {
-      img.src = selected.image_url;
+    const cover = (selected.images && selected.images[0]) || selected.image_url;
+    if (cover) {
+      img.src = cover;
       img.classList.remove('hidden');
     } else {
       img.classList.add('hidden');
@@ -205,7 +244,7 @@
   const formatPrice = (n) => Number(n).toLocaleString('ru-RU', { maximumFractionDigits: 0 });
 
   // ── Boot ───────────────────────────────────────
-  Object.assign(window, { backToCatalog, goPay, checkNow, sendInvoiceFallback });
+  Object.assign(window, { backToCatalog, goPay, goToForm, checkNow, sendInvoiceFallback });
   show('catalogSection');
   loadCatalog();
 })();

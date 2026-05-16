@@ -98,6 +98,7 @@ final class Db
                 description TEXT NULL,
                 price       DECIMAL(12,2) NOT NULL,
                 image_url   VARCHAR(512) NULL,
+                images      TEXT NULL,
                 active      TINYINT(1) NOT NULL DEFAULT 1,
                 created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 updated_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -105,6 +106,10 @@ final class Db
                 CONSTRAINT fk_products_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         ");
+        // Backfill `images` column for older deployments
+        try {
+            self::$pdo->exec("ALTER TABLE products ADD COLUMN images TEXT NULL AFTER image_url");
+        } catch (\Throwable) { /* exists */ }
 
         self::$pdo->exec("
             CREATE TABLE IF NOT EXISTS orders (

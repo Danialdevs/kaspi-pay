@@ -371,6 +371,13 @@
     $('prodName').value    = p?.name ?? '';
     $('prodPrice').value   = p?.price ?? '';
     $('prodImage').value   = p?.image_url ?? '';
+    // Extra images: from `images` array (excluding cover) or empty
+    let extras = [];
+    if (Array.isArray(p?.images) && p.images.length) {
+      const cover = p.image_url || p.images[0];
+      extras = p.images.filter((u) => u && u !== cover);
+    }
+    $('prodImages').value = extras.join('\n');
     $('prodDesc').value    = p?.description ?? '';
     $('prodActive').checked = p ? !!Number(p.active) : true;
     $('productModalTitle').textContent = p ? 'Изменить товар' : 'Новый товар';
@@ -379,10 +386,14 @@
   };
   const saveProduct = async () => {
     const id = parseInt($('prodId').value, 10) || 0;
+    const cover = $('prodImage').value.trim();
+    const extras = $('prodImages').value.split(/[\r\n,]+/).map((s) => s.trim()).filter(Boolean);
+    const images = cover ? [cover, ...extras] : extras;
     const payload = {
       name:        $('prodName').value.trim(),
       price:       parseFloat($('prodPrice').value),
-      image_url:   $('prodImage').value.trim(),
+      image_url:   cover,
+      images,
       description: $('prodDesc').value.trim(),
       active:      $('prodActive').checked ? 1 : 0,
     };
@@ -406,7 +417,7 @@
     tbody.innerHTML = items.map((p) => `
       <tr>
         <td>#${p.id}</td>
-        <td>${p.image_url ? `<img src="${escapeAttr(p.image_url)}" style="width:42px;height:42px;object-fit:cover;border-radius:4px;border:1px solid var(--border)">` : '<i class="bi bi-image text-muted"></i>'}</td>
+        <td>${p.image_url ? `<div class="d-flex align-items-center gap-1"><img src="${escapeAttr(p.image_url)}" style="width:42px;height:42px;object-fit:cover;border-radius:4px;border:1px solid var(--border)">${Array.isArray(p.images) && p.images.length > 1 ? `<span class="badge-soft badge-soft-info">+${p.images.length - 1}</span>` : ''}</div>` : '<i class="bi bi-image text-muted"></i>'}</td>
         <td><div class="fw-semibold">${escapeHtml(p.name)}</div>${p.description ? `<div class="small text-muted">${escapeHtml(p.description)}</div>` : ''}</td>
         <td class="fw-semibold">${Number(p.price).toLocaleString('ru-RU')} ₸</td>
         <td>${Number(p.active) ? '<span class="badge-soft badge-soft-success">Да</span>' : '<span class="badge-soft badge-soft-warning">Скрыт</span>'}</td>
