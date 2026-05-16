@@ -73,4 +73,10 @@ final class Order
         );
         $st->execute([':q' => $qrOperationId, ':t' => $qrToken, ':id' => $id]);
     }
+
+    public static function setPayType(int $id, string $payType): void
+    {
+        $st = Db::pdo()->prepare('UPDATE orders SET pay_type = :t WHERE id = :id');
+        $st->execute([':t' => $payType, ':id' => $id]);
+    }
 }

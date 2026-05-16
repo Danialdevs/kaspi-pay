@@ -28,6 +28,7 @@ final class Store
         match (true) {
             ($sub === '' || $sub === 'list') && $method === 'GET' => self::list($user),
             $sub === 'checkout' && $method === 'POST' => self::checkout($user),
+            $sub === 'invoice'  && $method === 'POST' => self::invoiceFallback($user),
             $sub === 'status'   && $method === 'GET'  => self::status($user),
             default => Http::error('Store: Not Found', 404),
         };
@@ -65,7 +66,7 @@ final class Store
         $ks = KaspiSession::firstActiveForUser($user->id);
         if (!$ks) Http::error('No active cashier — store is offline', 503);
 
-        // Create order pre-emptively so we have an id even if Kaspi call fails
+        // Order created upfront so we have an id even if Kaspi call fails
         $orderId = Order::create([
             'user_id'         => $user->id,
             'product_id'      => $productId,
@@ -74,21 +75,12 @@ final class Store
             'customer_phone'  => $customerPh,
             'product_name'    => (string)$product['name'],
             'amount'          => (float)$product['price'],
-            'pay_type'        => 'invoice',
+            'pay_type'        => 'qr',
         ]);
 
         try {
-            $session = [
-                'tokenSN'         => $ks['token_sn'],
-                'profileId'       => $ks['profile_id'],
-                'decryptedSecret' => Crypto::decryptSecret($ks['vtoken_secret']),
-            ];
-            $r = Pay::doCreateInvoice(
-                $session,
-                $customerPh,
-                (float)$product['price'],
-                (string)$product['name']
-            );
+            $session = self::sessionContext($ks);
+            $r = Pay::doCreateQr($session, (float)$product['price']);
             if (empty($r['ok'])) {
                 Http::json([
                     'ok'      => false,
@@ -97,13 +89,15 @@ final class Store
                     'kaspi'   => $r['kaspi'] ?? null,
                 ], 502);
             }
-            Order::setQr($orderId, (string)$r['id'], null);
+            Order::setQr($orderId, (string)$r['id'], $r['qrToken']);
             Http::json([
                 'ok'           => true,
                 'orderId'      => $orderId,
                 'amount'       => (float)$product['price'],
                 'productName'  => (string)$product['name'],
                 'customerPhone'=> $customerPh,
+                'qrToken'      => $r['qrToken'],
+                'expireDate'   => $r['expireDate'],
             ]);
         } catch (\Throwable $e) {
             Http::json([
@@ -112,6 +106,64 @@ final class Store
                 'error'   => $e->getMessage(),
             ], 502);
         }
+    }
+
+    /**
+     * Фолбэк «не получается с QR — выставите счёт на телефон».
+     * Берёт существующий заказ, перевыпускает операцию через invoice flow.
+     */
+    private static function invoiceFallback(User $user): never
+    {
+        $b = Http::jsonBody();
+        $orderId = (int)($b['orderId'] ?? 0);
+        if ($orderId <= 0) Http::error('orderId required', 400);
+        $order = Order::find($orderId);
+        if (!$order || (int)$order['user_id'] !== $user->id) {
+            Http::error('Order not found', 404);
+        }
+        if ($order['status'] !== 'pending') {
+            Http::error('Order is not pending', 400);
+        }
+        if (empty($order['kaspi_session_id'])) {
+            Http::error('Order has no cashier bound', 400);
+        }
+        $ks = KaspiSession::find($user->id, (int)$order['kaspi_session_id']);
+        if (!$ks) Http::error('Cashier not found', 404);
+
+        $session = self::sessionContext($ks);
+        $r = Pay::doCreateInvoice(
+            $session,
+            (string)$order['customer_phone'],
+            (float)$order['amount'],
+            (string)$order['product_name']
+        );
+        if (empty($r['ok'])) {
+            Http::json([
+                'ok'      => false,
+                'orderId' => $orderId,
+                'error'   => $r['error'] ?? 'Kaspi error',
+                'kaspi'   => $r['kaspi'] ?? null,
+            ], 502);
+        }
+        // Switch order to invoice mode + new operationId
+        Order::setQr($orderId, (string)$r['id'], null);
+        Order::setPayType($orderId, 'invoice');
+        Http::json([
+            'ok'           => true,
+            'orderId'      => $orderId,
+            'amount'       => (float)$order['amount'],
+            'productName'  => (string)$order['product_name'],
+            'customerPhone'=> (string)$order['customer_phone'],
+        ]);
+    }
+
+    private static function sessionContext(array $ks): array
+    {
+        return [
+            'tokenSN'         => $ks['token_sn'],
+            'profileId'       => $ks['profile_id'],
+            'decryptedSecret' => Crypto::decryptSecret($ks['vtoken_secret']),
+        ];
     }
 
     private static function status(User $user): never

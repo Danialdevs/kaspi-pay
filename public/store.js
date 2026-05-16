@@ -19,7 +19,7 @@
   };
 
   const show = (id) => {
-    ['catalogSection', 'formSection', 'paySection', 'doneSection', 'failSection'].forEach((s) => {
+    ['catalogSection', 'formSection', 'paySection', 'invSection', 'doneSection', 'failSection'].forEach((s) => {
       $(s).classList.toggle('hidden', s !== id);
     });
     stopPolling();
@@ -111,34 +111,68 @@
   };
 
   const renderPay = (r) => {
+    const url = r.qrToken;
+    const qrImg = url ? `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(url)}` : '';
+    $('qrBox').innerHTML = qrImg ? `<img src="${qrImg}" alt="QR">` : '<p class="text-muted">QR не получен</p>';
+    $('kaspiLink').href = url || '#';
     $('paySum').textContent = formatPrice(r.amount);
     $('payProductName').textContent = r.productName || '';
-    const ph = r.customerPhone || '';
-    $('payPhone').textContent = ph ? '+' + ph.replace(/^7/, '7 ') : '+7…';
     show('paySection');
+  };
+  const renderInvoice = (r) => {
+    $('invSum').textContent = formatPrice(r.amount);
+    $('invProductName').textContent = r.productName || '';
+    const ph = r.customerPhone || '';
+    $('invPhone').textContent = ph ? '+' + ph.replace(/^7/, '7 ') : '+7…';
+    show('invSection');
+  };
+  const sendInvoiceFallback = async () => {
+    if (!currentOrderId) return;
+    const btn = $('fallbackBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Отправляю…';
+    try {
+      const r = await api(`/api/store/${encodeURIComponent(username)}/invoice`, {
+        method: 'POST',
+        body: JSON.stringify({ orderId: currentOrderId }),
+      });
+      if (!r.ok || !r.json.ok) {
+        alert(r.json.error || 'Не удалось выставить счёт');
+        return;
+      }
+      renderInvoice(r.json);
+      startPolling();
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-phone-vibrate"></i> Не получается — выставить счёт на телефон';
+    }
   };
   const checkNow = async () => {
     if (!currentOrderId) return;
     const btn = $('refreshBtn');
-    btn.disabled = true;
-    btn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Проверяю…';
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Проверяю…';
+    }
     try {
       const r = await api(`/api/store/${encodeURIComponent(username)}/status?orderId=${currentOrderId}`);
       if (r.ok) handleStatus(r.json);
     } finally {
-      btn.disabled = false;
-      btn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Проверить сейчас';
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Проверить сейчас';
+      }
     }
   };
 
   // ── Polling status ─────────────────────────────
   const handleStatus = (s) => {
-    const line = $('payStatus');
-    if (line) {
-      const cls = { success: 'badge-soft-success', pending: 'badge-soft-info', failed: 'badge-soft-danger', expired: 'badge-soft-warning' }[s.status] || 'badge-soft-info';
-      line.className = 'badge-soft ' + cls;
-      line.textContent = s.status === 'pending' ? 'Ожидание оплаты…' : s.status;
-    }
+    const cls = { success: 'badge-soft-success', pending: 'badge-soft-info', failed: 'badge-soft-danger', expired: 'badge-soft-warning' }[s.status] || 'badge-soft-info';
+    const txt = s.status === 'pending' ? 'Ожидание оплаты…' : s.status;
+    ['payStatus', 'invStatus'].forEach((id) => {
+      const line = $(id);
+      if (line) { line.className = 'badge-soft ' + cls; line.textContent = txt; }
+    });
     if (s.final) {
       stopPolling();
       if (s.paid) {
@@ -171,7 +205,7 @@
   const formatPrice = (n) => Number(n).toLocaleString('ru-RU', { maximumFractionDigits: 0 });
 
   // ── Boot ───────────────────────────────────────
-  Object.assign(window, { backToCatalog, goPay, checkNow });
+  Object.assign(window, { backToCatalog, goPay, checkNow, sendInvoiceFallback });
   show('catalogSection');
   loadCatalog();
 })();
