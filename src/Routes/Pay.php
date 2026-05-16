@@ -43,6 +43,79 @@ final class Pay
         };
     }
 
+    /**
+     * Низкоуровневый вызов «создать QR» — переиспользуется storefront-роутом.
+     * Возвращает массив с полями `ok`, и при `ok=true`: id, amount, qrToken, expireDate, receiptUrl.
+     */
+    public static function doCreateQr(array $session, float $amount): array
+    {
+        $url = Config::KASPI_QRPAY_URL . '/v01/qr-token/create';
+        $headers = Helpers::signedQrPayHeaders($url, $session) + ['Content-Type' => 'application/json'];
+        $body = Helpers::jenc([
+            'PaymentAmount'   => $amount,
+            'DeviceInterface' => 'Pos',
+        ]);
+        $resp = Helpers::httpRequest($url, 'POST', $body, $headers);
+        $j = is_array($resp['body']) ? $resp['body'] : [];
+        $d = $j['Data'] ?? null;
+
+        if (!$d || empty($d['QrOperationId'])) {
+            return [
+                'ok'    => false,
+                'error' => $j['Message'] ?? $j['StatusDesc'] ?? 'Kaspi error',
+                'kaspi' => $j,
+            ];
+        }
+        $qrToken = isset($d['QrToken'])
+            ? str_replace('https://qr.kaspi.kz/', 'https://pay.kaspi.kz/pay/', (string)$d['QrToken'])
+            : null;
+        return [
+            'ok'         => true,
+            'id'         => (string)$d['QrOperationId'],
+            'amount'     => $d['Amount']     ?? $amount,
+            'qrToken'    => $qrToken,
+            'expireDate' => $d['ExpireDate'] ?? null,
+            'receiptUrl' => $d['ReceiptUrl'] ?? null,
+            'kaspi'      => $j,
+        ];
+    }
+
+    /**
+     * Низкоуровневый «получить статус» — переиспользуется storefront-роутом.
+     * Возвращает массив с полями ok, id, type, status (mapped), rawStatus, paid, final, amount.
+     */
+    public static function doStatus(array $session, string $type, string $id): array
+    {
+        $url = $type === 'qr'
+            ? Config::KASPI_QRPAY_URL . '/v02/kaspi-qr/status?qrOperationId=' . urlencode($id)
+            : Config::KASPI_QRPAY_URL . '/v02/remote/details?operationId=' . urlencode($id);
+        $resp = Helpers::httpRequest($url, 'GET', null, Helpers::signedQrPayHeaders($url, $session));
+        $j = is_array($resp['body']) ? $resp['body'] : [];
+        $d = $j['Data'] ?? null;
+        if (!$d) {
+            return ['ok' => false, 'error' => $j['Message'] ?? 'Kaspi error', 'kaspi' => $j];
+        }
+        $raw = $d['Status'] ?? '';
+        return [
+            'ok'         => true,
+            'type'       => $type,
+            'id'         => $id,
+            'status'     => self::mapStatus($type, $raw),
+            'rawStatus'  => $raw,
+            'statusDesc' => $d['StatusDesc']  ?? null,
+            'amount'     => $d['Amount']      ?? null,
+            'paid'       => in_array($raw, self::FINAL_OK, true),
+            'final'      => self::isFinal($raw),
+            'receiptUrl' => $d['ReceiptUrl']  ?? null,
+            'orderNumber'=> $d['OrderNumber'] ?? null,
+            'kaspi'      => $j,
+        ];
+    }
+
+    // ─── публичный мапинг статусов для других маршрутов ───
+    public static function mapStatusPublic(string $type, string $raw): string { return self::mapStatus($type, $raw); }
+    public static function isFinalPublic(string $raw): bool { return self::isFinal($raw); }
+
     // ─── создать QR ───
     private static function createQr(array $session): never
     {
@@ -50,43 +123,19 @@ final class Pay
         $amount = $b['amount'] ?? null;
         if (!$amount) Http::error('amount required', 400);
 
-        $url = Config::KASPI_QRPAY_URL . '/v01/qr-token/create';
-        $headers = Helpers::signedQrPayHeaders($url, $session) + ['Content-Type' => 'application/json'];
-        $payload = [
-            'PaymentAmount'   => (float)$amount,
-            'DeviceInterface' => 'Pos',
-        ];
-        // Lat/Long — отправляем только если клиент явно передал.
-        if (isset($b['latitude']))  $payload['Latitude']  = (float)$b['latitude'];
-        if (isset($b['longitude'])) $payload['Longitude'] = (float)$b['longitude'];
-        $body = Helpers::jenc($payload);
-
-        $resp = Helpers::httpRequest($url, 'POST', $body, $headers);
-        $j = is_array($resp['body']) ? $resp['body'] : [];
-        $d = $j['Data'] ?? null;
-
-        if (!$d || empty($d['QrOperationId'])) {
-            Http::json([
-                'ok'    => false,
-                'error' => $j['Message'] ?? $j['StatusDesc'] ?? 'Kaspi error',
-                'kaspi' => $j,
-            ], 502);
-        }
-
-        $qrToken = isset($d['QrToken'])
-            ? str_replace('https://qr.kaspi.kz/', 'https://pay.kaspi.kz/pay/', (string)$d['QrToken'])
-            : null;
+        $r = self::doCreateQr($session, (float)$amount);
+        if (!$r['ok']) Http::json($r, 502);
 
         Http::json([
             'ok'         => true,
             'type'       => 'qr',
-            'id'         => (string)$d['QrOperationId'],
-            'amount'     => $d['Amount']     ?? (float)$amount,
-            'qrToken'    => $qrToken,
-            'expireDate' => $d['ExpireDate'] ?? null,
-            'receiptUrl' => $d['ReceiptUrl'] ?? null,
+            'id'         => $r['id'],
+            'amount'     => $r['amount'],
+            'qrToken'    => $r['qrToken'],
+            'expireDate' => $r['expireDate'],
+            'receiptUrl' => $r['receiptUrl'],
             'status'     => 'pending',
-            'kaspi'      => $j,
+            'kaspi'      => $r['kaspi'],
         ]);
     }
 

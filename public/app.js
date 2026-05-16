@@ -69,6 +69,8 @@
     $('userBadge').textContent = user.username;
     $('userAvatar').textContent = (user.username[0] || 'M').toUpperCase();
     $('apiKeyOut').textContent = user.apiKey || '—';
+    const storeLink = $('storeLink');
+    if (storeLink) storeLink.href = '/s/' + encodeURIComponent(user.username);
     await refreshSessions();
     navigate(location.hash.replace('#', '') || 'dashboard');
   };
@@ -78,13 +80,15 @@
     currentPage = page;
     $$('.sidebar-menu a').forEach((a) => a.classList.toggle('active', a.dataset.page === page));
     $$('section[data-page]').forEach((s) => s.classList.toggle('hidden', s.dataset.page !== page));
-    const titles = { dashboard: 'Дашборд', orders: 'Заказы', pos: 'Касса', sessions: 'Kaspi-кассиры', settings: 'API-ключ магазина' };
+    const titles = { dashboard: 'Дашборд', products: 'Товары', shoporders: 'Заказы клиентов', orders: 'История Каспи', pos: 'Касса', sessions: 'Kaspi-кассиры', settings: 'API-ключ магазина' };
     $('pageTitle').textContent = titles[page] || '';
     location.hash = page;
     if (page === 'dashboard') loadDashboard();
     if (page === 'orders') loadOrders();
     if (page === 'sessions') renderSessionsTable();
     if (page === 'pos') populateSessionSelector('posSession');
+    if (page === 'products') loadProducts();
+    if (page === 'shoporders') loadShopOrders();
   };
   window.addEventListener('hashchange', () => navigate(location.hash.replace('#', '') || 'dashboard'));
   $$('.sidebar-menu a').forEach((a) => a.addEventListener('click', (e) => { e.preventDefault(); navigate(a.dataset.page); }));
@@ -359,8 +363,90 @@
     }
   };
 
+  // ── Products ───────────────────────────
+  let productModal = null;
+  const openProductModal = (p = null) => {
+    if (!productModal) productModal = new bootstrap.Modal($('productModal'));
+    $('prodId').value      = p?.id ?? '';
+    $('prodName').value    = p?.name ?? '';
+    $('prodPrice').value   = p?.price ?? '';
+    $('prodImage').value   = p?.image_url ?? '';
+    $('prodDesc').value    = p?.description ?? '';
+    $('prodActive').checked = p ? !!Number(p.active) : true;
+    $('productModalTitle').textContent = p ? 'Изменить товар' : 'Новый товар';
+    $('prodErr').classList.add('hidden');
+    productModal.show();
+  };
+  const saveProduct = async () => {
+    const id = parseInt($('prodId').value, 10) || 0;
+    const payload = {
+      name:        $('prodName').value.trim(),
+      price:       parseFloat($('prodPrice').value),
+      image_url:   $('prodImage').value.trim(),
+      description: $('prodDesc').value.trim(),
+      active:      $('prodActive').checked ? 1 : 0,
+    };
+    if (!payload.name)  return setProdErr('Введите название');
+    if (!(payload.price > 0)) return setProdErr('Цена > 0');
+    const path = id ? '/api/products/update' : '/api/products/create';
+    const body = id ? JSON.stringify({ id, ...payload }) : JSON.stringify(payload);
+    const r = await api(path, { method: 'POST', body });
+    if (!r.ok) return setProdErr(r.json.error || 'Ошибка');
+    productModal.hide();
+    loadProducts();
+  };
+  const setProdErr = (msg) => { const e = $('prodErr'); e.textContent = msg; e.classList.remove('hidden'); };
+  const loadProducts = async () => {
+    const tbody = $('productsTbody');
+    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">Загрузка…</td></tr>';
+    const r = await api('/api/products/list');
+    if (!r.ok) { tbody.innerHTML = `<tr><td colspan="6" class="text-danger small p-3">${escapeHtml(r.json.error || 'Ошибка')}</td></tr>`; return; }
+    const items = r.json.products || [];
+    if (!items.length) { tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted small p-4">Нет товаров. Жми «+ Добавить».</td></tr>'; return; }
+    tbody.innerHTML = items.map((p) => `
+      <tr>
+        <td>#${p.id}</td>
+        <td>${p.image_url ? `<img src="${escapeAttr(p.image_url)}" style="width:42px;height:42px;object-fit:cover;border-radius:4px;border:1px solid var(--border)">` : '<i class="bi bi-image text-muted"></i>'}</td>
+        <td><div class="fw-semibold">${escapeHtml(p.name)}</div>${p.description ? `<div class="small text-muted">${escapeHtml(p.description)}</div>` : ''}</td>
+        <td class="fw-semibold">${Number(p.price).toLocaleString('ru-RU')} ₸</td>
+        <td>${Number(p.active) ? '<span class="badge-soft badge-soft-success">Да</span>' : '<span class="badge-soft badge-soft-warning">Скрыт</span>'}</td>
+        <td class="text-end">
+          <button class="btn btn-sm btn-outline-secondary" onclick='editProduct(${JSON.stringify(p)})'><i class="bi bi-pencil"></i></button>
+          <button class="btn btn-sm btn-outline-danger" onclick="deleteProduct(${p.id})"><i class="bi bi-trash"></i></button>
+        </td>
+      </tr>`).join('');
+  };
+  const editProduct = (p) => openProductModal(p);
+  const deleteProduct = async (id) => {
+    if (!confirm('Удалить товар?')) return;
+    await api('/api/products/delete', { method: 'POST', body: JSON.stringify({ id }) });
+    loadProducts();
+  };
+
+  // ── Shop Orders ────────────────────────
+  const loadShopOrders = async () => {
+    const tbody = $('shopOrdersTbody');
+    tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">Загрузка…</td></tr>';
+    const r = await api('/api/orders/list');
+    if (!r.ok) { tbody.innerHTML = `<tr><td colspan="8" class="text-danger small p-3">${escapeHtml(r.json.error || 'Ошибка')}</td></tr>`; return; }
+    const items = r.json.orders || [];
+    if (!items.length) { tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted small p-4">Заказов пока нет.</td></tr>'; return; }
+    tbody.innerHTML = items.map((o) => `
+      <tr>
+        <td>#${o.id}</td>
+        <td class="small text-muted">${escapeHtml(o.created_at || '')}</td>
+        <td>${escapeHtml(o.customer_name)}</td>
+        <td class="small">+${escapeHtml(o.customer_phone)}</td>
+        <td>${escapeHtml(o.product_name)}</td>
+        <td class="fw-semibold">${Number(o.amount).toLocaleString('ru-RU')} ₸</td>
+        <td>${statusBadge(o.status)}</td>
+        <td class="text-end small text-muted">${escapeHtml(o.raw_status || '')}</td>
+      </tr>`).join('');
+  };
+
   // ── Utils ──────────────────────────────
   const escapeHtml = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const escapeAttr = (s) => escapeHtml(s).replace(/'/g, '&#39;');
 
   // ── Exports ────────────────────────────
   Object.assign(window, {
@@ -369,6 +455,8 @@
     copyCashierToken, rotateCashierToken,
     createQr, createInvoice,
     loadOrders, copyApiKey, regenerateKey,
+    openProductModal, saveProduct, editProduct, deleteProduct, loadProducts,
+    loadShopOrders,
   });
 
   boot();

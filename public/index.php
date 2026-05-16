@@ -5,8 +5,11 @@ use Kaspi\Bootstrap;
 use Kaspi\Http;
 use Kaspi\Routes\Account;
 use Kaspi\Routes\Auth;
+use Kaspi\Routes\Orders;
 use Kaspi\Routes\Pay;
+use Kaspi\Routes\Products;
 use Kaspi\Routes\Sessions;
+use Kaspi\Routes\Store;
 
 $root = dirname(__DIR__);
 require $root . '/src/Bootstrap.php';
@@ -70,6 +73,28 @@ if ($path === '/docs/openapi.yaml') {
     exit;
 }
 
+// Public storefront page: /s/<username>
+if (preg_match('#^/s/([a-zA-Z0-9_.@-]{3,64})/?$#', $path, $m)) {
+    // Validate shop exists before serving HTML
+    $shop = \Kaspi\User::findByUsername($m[1]);
+    if (!$shop) Http::error('Shop not found', 404);
+    header('Content-Type: text/html; charset=utf-8');
+    readfile($root . '/public/store.html');
+    exit;
+}
+if ($path === '/store.js') {
+    header('Content-Type: application/javascript; charset=utf-8');
+    readfile($root . '/public/store.js');
+    exit;
+}
+
+// Public storefront API: /api/store/<username>/<sub>
+if (preg_match('#^/api/store/([a-zA-Z0-9_.@-]{3,64})(?:/([a-z-]+))?/?$#i', $path, $m)) {
+    $_GET['shop'] = $m[1];
+    $sub = $m[2] ?? '';
+    Store::dispatch($sub, $method);
+}
+
 // API routes: /api/{section}/{sub}
 if (preg_match('#^/api/([a-z\-]+)/([a-z\-]+)/?$#i', $path, $m)) {
     [$_, $section, $sub] = $m;
@@ -78,6 +103,8 @@ if (preg_match('#^/api/([a-z\-]+)/([a-z\-]+)/?$#i', $path, $m)) {
         'sessions' => Sessions::dispatch($sub, $method),
         'auth'     => Auth::dispatch($sub, $method),
         'pay'      => Pay::dispatch($sub, $method),
+        'products' => Products::dispatch($sub, $method),
+        'orders'   => Orders::dispatch($sub, $method),
         default    => Http::error('Unknown section', 404),
     };
 }

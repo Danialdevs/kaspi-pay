@@ -83,6 +83,19 @@ final class User
         return $u;
     }
 
+    public static function findByUsername(string $username): ?self
+    {
+        $st = Db::pdo()->prepare('SELECT id, username, api_key FROM users WHERE username = :u');
+        $st->execute([':u' => $username]);
+        $row = $st->fetch();
+        if (!$row) return null;
+        $u = new self();
+        $u->id = (int)$row['id'];
+        $u->username = $row['username'];
+        $u->apiKey = $row['api_key'];
+        return $u;
+    }
+
     public static function regenerateApiKey(int $id): string
     {
         $newKey = bin2hex(random_bytes(32));

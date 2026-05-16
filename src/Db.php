@@ -89,6 +89,45 @@ final class Db
             self::$pdo->exec("ALTER TABLE kaspi_sessions ADD COLUMN api_token VARCHAR(64) NULL UNIQUE AFTER org_name");
             self::$pdo->exec("CREATE INDEX idx_ks_token ON kaspi_sessions (api_token)");
         } catch (\Throwable) { /* already exists */ }
+
+        self::$pdo->exec("
+            CREATE TABLE IF NOT EXISTS products (
+                id          INT AUTO_INCREMENT PRIMARY KEY,
+                user_id     INT NOT NULL,
+                name        VARCHAR(255) NOT NULL,
+                description TEXT NULL,
+                price       DECIMAL(12,2) NOT NULL,
+                image_url   VARCHAR(512) NULL,
+                active      TINYINT(1) NOT NULL DEFAULT 1,
+                created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_products_user (user_id, active),
+                CONSTRAINT fk_products_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
+
+        self::$pdo->exec("
+            CREATE TABLE IF NOT EXISTS orders (
+                id               INT AUTO_INCREMENT PRIMARY KEY,
+                user_id          INT NOT NULL,
+                product_id       INT NULL,
+                kaspi_session_id INT NULL,
+                customer_name    VARCHAR(128) NOT NULL,
+                customer_phone   VARCHAR(20)  NOT NULL,
+                product_name     VARCHAR(255) NOT NULL,
+                amount           DECIMAL(12,2) NOT NULL,
+                qr_operation_id  VARCHAR(64) NULL,
+                qr_token         TEXT NULL,
+                status           ENUM('pending','success','failed','expired','unknown') NOT NULL DEFAULT 'pending',
+                raw_status       VARCHAR(64) NULL,
+                created_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_orders_user (user_id, created_at),
+                INDEX idx_orders_status (status),
+                INDEX idx_orders_qrop (qr_operation_id),
+                CONSTRAINT fk_orders_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
     }
 
     public static function kvGet(string $key): ?string

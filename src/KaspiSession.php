@@ -74,6 +74,18 @@ final class KaspiSession
         return $row ?: null;
     }
 
+    public static function firstActiveForUser(int $userId): ?array
+    {
+        $st = Db::pdo()->prepare(
+            'SELECT * FROM kaspi_sessions
+             WHERE user_id = :u AND status = "active" AND token_sn IS NOT NULL AND vtoken_secret IS NOT NULL
+             ORDER BY id ASC LIMIT 1'
+        );
+        $st->execute([':u' => $userId]);
+        $row = $st->fetch();
+        return $row ?: null;
+    }
+
     public static function rotateApiToken(int $userId, int $id): ?string
     {
         $newToken = bin2hex(random_bytes(32));

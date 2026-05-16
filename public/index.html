@@ -33,11 +33,15 @@
         <nav class="sidebar-menu">
           <div class="sidebar-section">Магазин</div>
           <a href="#dashboard" data-page="dashboard" class="active"><i class="bi bi-speedometer2"></i> Дашборд</a>
-          <a href="#orders" data-page="orders"><i class="bi bi-card-list"></i> Заказы</a>
+          <a href="#products" data-page="products"><i class="bi bi-box-seam"></i> Товары</a>
+          <a href="#shoporders" data-page="shoporders"><i class="bi bi-bag-check"></i> Заказы</a>
+          <a href="#orders" data-page="orders"><i class="bi bi-card-list"></i> История Каспи</a>
           <a href="#pos" data-page="pos"><i class="bi bi-credit-card-2-front"></i> Касса</a>
           <div class="sidebar-section">Интеграция</div>
           <a href="#sessions" data-page="sessions"><i class="bi bi-phone"></i> Kaspi-кассиры</a>
           <a href="#settings" data-page="settings"><i class="bi bi-key"></i> API-ключ</a>
+          <div class="sidebar-section">Витрина</div>
+          <a href="#" id="storeLink" target="_blank"><i class="bi bi-box-arrow-up-right"></i> Открыть магазин</a>
         </nav>
       </aside>
 
@@ -194,6 +198,70 @@
             </div>
           </section>
 
+          <!-- ─── PRODUCTS ─── -->
+          <section data-page="products" class="hidden">
+            <div class="panel card-view">
+              <div class="panel-heading">
+                <h6 class="panel-title txt-dark">Товары</h6>
+                <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#productModal" onclick="openProductModal()"><i class="bi bi-plus"></i> Добавить</button>
+              </div>
+              <div class="panel-body pa-0">
+                <div class="table-wrap">
+                  <div class="table-responsive">
+                    <table class="table product-overview border-none">
+                      <thead>
+                        <tr>
+                          <th>ID</th>
+                          <th>Фото</th>
+                          <th>Название</th>
+                          <th>Цена</th>
+                          <th>Активный</th>
+                          <th></th>
+                        </tr>
+                      </thead>
+                      <tbody id="productsTbody">
+                        <tr><td colspan="6" class="text-center text-muted">Загрузка…</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ─── SHOP ORDERS (свои клиенты) ─── -->
+          <section data-page="shoporders" class="hidden">
+            <div class="panel card-view">
+              <div class="panel-heading">
+                <h6 class="panel-title txt-dark">Заказы клиентов</h6>
+                <button class="btn btn-sm btn-outline-secondary" onclick="loadShopOrders()"><i class="bi bi-arrow-clockwise"></i></button>
+              </div>
+              <div class="panel-body pa-0">
+                <div class="table-wrap">
+                  <div class="table-responsive">
+                    <table class="table product-overview border-none">
+                      <thead>
+                        <tr>
+                          <th>ID</th>
+                          <th>Дата</th>
+                          <th>Клиент</th>
+                          <th>Телефон</th>
+                          <th>Товар</th>
+                          <th>Сумма</th>
+                          <th>Статус</th>
+                          <th></th>
+                        </tr>
+                      </thead>
+                      <tbody id="shopOrdersTbody">
+                        <tr><td colspan="8" class="text-center text-muted">Загрузка…</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
           <!-- ─── SETTINGS ─── -->
           <section data-page="settings" class="hidden">
             <div class="panel card-view">
@@ -211,6 +279,35 @@
               </div>
             </div>
           </section>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── PRODUCT MODAL ─── -->
+    <div class="modal fade" id="productModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="productModalTitle">Новый товар</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" id="prodId" />
+            <label class="form-label small text-muted">Название</label>
+            <input id="prodName" type="text" class="form-control mb-2" placeholder="Кофе латте" />
+            <label class="form-label small text-muted">Цена ₸</label>
+            <input id="prodPrice" type="number" class="form-control mb-2" placeholder="0" min="1" inputmode="numeric" />
+            <label class="form-label small text-muted">URL фото (опционально)</label>
+            <input id="prodImage" type="url" class="form-control mb-2" placeholder="https://…" />
+            <label class="form-label small text-muted">Описание (опционально)</label>
+            <textarea id="prodDesc" class="form-control mb-3" rows="3" placeholder="—"></textarea>
+            <div class="form-check mb-3">
+              <input id="prodActive" class="form-check-input" type="checkbox" checked />
+              <label class="form-check-label small" for="prodActive">Активный (виден клиентам)</label>
+            </div>
+            <button class="btn btn-primary w-100" onclick="saveProduct()"><i class="bi bi-save"></i> Сохранить</button>
+            <div id="prodErr" class="status-bar status-err mt-3 hidden"></div>
+          </div>
         </div>
       </div>
     </div>
