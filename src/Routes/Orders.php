@@ -42,7 +42,8 @@ final class Orders
                         'profileId'       => $ks['profile_id'],
                         'decryptedSecret' => Crypto::decryptSecret($ks['vtoken_secret']),
                     ];
-                    $st = Pay::doStatus($session, 'qr', (string)$order['qr_operation_id']);
+                    $payType = $order['pay_type'] ?? 'invoice';
+                    $st = Pay::doStatus($session, $payType, (string)$order['qr_operation_id']);
                     if (!empty($st['ok']) && !empty($st['final'])) {
                         Order::updateStatus($id, (string)$st['status'], (string)($st['rawStatus'] ?? ''));
                         $order['status'] = $st['status'];

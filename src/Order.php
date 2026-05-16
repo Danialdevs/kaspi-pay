@@ -9,8 +9,8 @@ final class Order
     {
         $st = Db::pdo()->prepare(
             'INSERT INTO orders (user_id, product_id, kaspi_session_id, customer_name, customer_phone,
-                                 product_name, amount, qr_operation_id, qr_token, status, raw_status)
-             VALUES (:u, :p, :ks, :cn, :cp, :pn, :a, :qop, :qt, :s, :rs)'
+                                 product_name, amount, qr_operation_id, qr_token, pay_type, status, raw_status)
+             VALUES (:u, :p, :ks, :cn, :cp, :pn, :a, :qop, :qt, :pt, :s, :rs)'
         );
         $st->execute([
             ':u'   => $data['user_id'],
@@ -22,6 +22,7 @@ final class Order
             ':a'   => (float)$data['amount'],
             ':qop' => $data['qr_operation_id']  ?? null,
             ':qt'  => $data['qr_token']         ?? null,
+            ':pt'  => $data['pay_type']         ?? 'invoice',
             ':s'   => $data['status']           ?? 'pending',
             ':rs'  => $data['raw_status']       ?? null,
         ]);

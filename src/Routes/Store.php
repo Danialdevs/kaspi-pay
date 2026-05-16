@@ -65,7 +65,7 @@ final class Store
         $ks = KaspiSession::firstActiveForUser($user->id);
         if (!$ks) Http::error('No active cashier — store is offline', 503);
 
-        // Create order in pending state first so we have an id even if Kaspi call fails
+        // Create order pre-emptively so we have an id even if Kaspi call fails
         $orderId = Order::create([
             'user_id'         => $user->id,
             'product_id'      => $productId,
@@ -74,6 +74,7 @@ final class Store
             'customer_phone'  => $customerPh,
             'product_name'    => (string)$product['name'],
             'amount'          => (float)$product['price'],
+            'pay_type'        => 'invoice',
         ]);
 
         try {
@@ -82,7 +83,12 @@ final class Store
                 'profileId'       => $ks['profile_id'],
                 'decryptedSecret' => Crypto::decryptSecret($ks['vtoken_secret']),
             ];
-            $r = Pay::doCreateQr($session, (float)$product['price']);
+            $r = Pay::doCreateInvoice(
+                $session,
+                $customerPh,
+                (float)$product['price'],
+                (string)$product['name']
+            );
             if (empty($r['ok'])) {
                 Http::json([
                     'ok'      => false,
@@ -91,14 +97,13 @@ final class Store
                     'kaspi'   => $r['kaspi'] ?? null,
                 ], 502);
             }
-            Order::setQr($orderId, (string)$r['id'], $r['qrToken']);
+            Order::setQr($orderId, (string)$r['id'], null);
             Http::json([
-                'ok'          => true,
-                'orderId'     => $orderId,
-                'amount'      => (float)$product['price'],
-                'productName' => (string)$product['name'],
-                'qrToken'     => $r['qrToken'],
-                'expireDate'  => $r['expireDate'],
+                'ok'           => true,
+                'orderId'      => $orderId,
+                'amount'       => (float)$product['price'],
+                'productName'  => (string)$product['name'],
+                'customerPhone'=> $customerPh,
             ]);
         } catch (\Throwable $e) {
             Http::json([
@@ -128,7 +133,8 @@ final class Store
                         'profileId'       => $ks['profile_id'],
                         'decryptedSecret' => Crypto::decryptSecret($ks['vtoken_secret']),
                     ];
-                    $st = Pay::doStatus($session, 'qr', (string)$order['qr_operation_id']);
+                    $payType = $order['pay_type'] ?? 'invoice';
+                    $st = Pay::doStatus($session, $payType, (string)$order['qr_operation_id']);
                     if (!empty($st['ok'])) {
                         if (!empty($st['final']) || ($st['status'] !== 'pending')) {
                             Order::updateStatus($orderId, (string)$st['status'], (string)($st['rawStatus'] ?? ''));

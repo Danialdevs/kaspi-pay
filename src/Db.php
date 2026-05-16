@@ -118,6 +118,7 @@ final class Db
                 amount           DECIMAL(12,2) NOT NULL,
                 qr_operation_id  VARCHAR(64) NULL,
                 qr_token         TEXT NULL,
+                pay_type         ENUM('qr','invoice') NOT NULL DEFAULT 'invoice',
                 status           ENUM('pending','success','failed','expired','unknown') NOT NULL DEFAULT 'pending',
                 raw_status       VARCHAR(64) NULL,
                 created_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -128,6 +129,10 @@ final class Db
                 CONSTRAINT fk_orders_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         ");
+        // Backfill pay_type for older deployments
+        try {
+            self::$pdo->exec("ALTER TABLE orders ADD COLUMN pay_type ENUM('qr','invoice') NOT NULL DEFAULT 'invoice' AFTER qr_token");
+        } catch (\Throwable) { /* exists */ }
     }
 
     public static function kvGet(string $key): ?string

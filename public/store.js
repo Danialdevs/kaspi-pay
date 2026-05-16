@@ -111,43 +111,56 @@
   };
 
   const renderPay = (r) => {
-    const url = r.qrToken;
-    const qrImg = url ? `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(url)}` : '';
-    $('qrBox').innerHTML = qrImg ? `<img src="${qrImg}" alt="QR">` : '<p class="text-muted">QR-токен не получен</p>';
-    $('kaspiLink').href = url || '#';
     $('paySum').textContent = formatPrice(r.amount);
     $('payProductName').textContent = r.productName || '';
+    const ph = r.customerPhone || '';
+    $('payPhone').textContent = ph ? '+' + ph.replace(/^7/, '7 ') : '+7…';
     show('paySection');
+  };
+  const checkNow = async () => {
+    if (!currentOrderId) return;
+    const btn = $('refreshBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Проверяю…';
+    try {
+      const r = await api(`/api/store/${encodeURIComponent(username)}/status?orderId=${currentOrderId}`);
+      if (r.ok) handleStatus(r.json);
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Проверить сейчас';
+    }
   };
 
   // ── Polling status ─────────────────────────────
+  const handleStatus = (s) => {
+    const line = $('payStatus');
+    if (line) {
+      const cls = { success: 'badge-soft-success', pending: 'badge-soft-info', failed: 'badge-soft-danger', expired: 'badge-soft-warning' }[s.status] || 'badge-soft-info';
+      line.className = 'badge-soft ' + cls;
+      line.textContent = s.status === 'pending' ? 'Ожидание оплаты…' : s.status;
+    }
+    if (s.final) {
+      stopPolling();
+      if (s.paid) {
+        $('doneSum').textContent = formatPrice(s.amount);
+        $('doneProductName').textContent = s.productName || '';
+        show('doneSection');
+      } else {
+        $('failReason').textContent = ({
+          failed:  'Платёж отклонён или отменён.',
+          expired: 'Время оплаты истекло.',
+        }[s.status]) || 'Платёж не прошёл.';
+        show('failSection');
+      }
+    }
+  };
   const startPolling = () => {
     stopPolling();
     pollTimer = setInterval(async () => {
       if (!currentOrderId) return stopPolling();
       const r = await api(`/api/store/${encodeURIComponent(username)}/status?orderId=${currentOrderId}`);
       if (!r.ok) return;
-      const s = r.json;
-      const line = $('payStatus');
-      if (line) {
-        const cls = { success: 'badge-soft-success', pending: 'badge-soft-info', failed: 'badge-soft-danger', expired: 'badge-soft-warning' }[s.status] || 'badge-soft-info';
-        line.className = 'badge-soft ' + cls;
-        line.textContent = s.status === 'pending' ? 'Ожидание оплаты…' : s.status;
-      }
-      if (s.final) {
-        stopPolling();
-        if (s.paid) {
-          $('doneSum').textContent = formatPrice(s.amount);
-          $('doneProductName').textContent = s.productName || '';
-          show('doneSection');
-        } else {
-          $('failReason').textContent = ({
-            failed:  'Платёж отклонён или отменён.',
-            expired: 'Время оплаты истекло.',
-          }[s.status]) || 'Платёж не прошёл.';
-          show('failSection');
-        }
-      }
+      handleStatus(r.json);
     }, 3000);
   };
   const stopPolling = () => { if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } };
@@ -158,7 +171,7 @@
   const formatPrice = (n) => Number(n).toLocaleString('ru-RU', { maximumFractionDigits: 0 });
 
   // ── Boot ───────────────────────────────────────
-  Object.assign(window, { backToCatalog, goPay });
+  Object.assign(window, { backToCatalog, goPay, checkNow });
   show('catalogSection');
   loadCatalog();
 })();

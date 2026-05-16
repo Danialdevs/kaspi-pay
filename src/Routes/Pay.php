@@ -81,6 +81,41 @@ final class Pay
     }
 
     /**
+     * Низкоуровневый вызов «создать счёт по номеру» — переиспользуется storefront-роутом.
+     */
+    public static function doCreateInvoice(array $session, string $phoneNumber, float $amount, string $comment = ''): array
+    {
+        $url = Config::KASPI_QRPAY_URL . '/v01/remote/create';
+        $headers = Helpers::signedQrPayHeaders($url, $session) + ['Content-Type' => 'application/json'];
+        $body = Helpers::jenc([
+            'PhoneNumber' => $phoneNumber,
+            'Amount'      => $amount,
+            'Comment'     => $comment,
+        ]);
+        $resp = Helpers::httpRequest($url, 'POST', $body, $headers);
+        $j = is_array($resp['body']) ? $resp['body'] : [];
+        $d = $j['Data'] ?? null;
+
+        if (!$d || empty($d['Id'])) {
+            return [
+                'ok'    => false,
+                'error' => $j['Message'] ?? $j['StatusDesc'] ?? 'Kaspi error',
+                'kaspi' => $j,
+            ];
+        }
+        return [
+            'ok'          => true,
+            'id'          => (string)$d['Id'],
+            'amount'      => $d['Amount']       ?? $amount,
+            'phoneNumber' => $d['ClientMobile'] ?? $phoneNumber,
+            'orderNumber' => $d['OrderNumber']  ?? null,
+            'receiptUrl'  => $d['ReceiptUrl']   ?? null,
+            'rawStatus'   => $d['Status']       ?? 'RemotePaymentCreated',
+            'kaspi'       => $j,
+        ];
+    }
+
+    /**
      * Низкоуровневый «получить статус» — переиспользуется storefront-роутом.
      * Возвращает массив с полями ok, id, type, status (mapped), rawStatus, paid, final, amount.
      */
