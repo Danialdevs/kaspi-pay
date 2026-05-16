@@ -96,7 +96,10 @@ final class Pay
         $j = is_array($resp['body']) ? $resp['body'] : [];
         $d = $j['Data'] ?? null;
 
-        if (!$d || empty($d['Id'])) {
+        // Kaspi returns Id (legacy) либо QrOperationId (current). Берём что есть.
+        $opId = $d['Id'] ?? $d['QrOperationId'] ?? null;
+        $okByCode = ($j['StatusCode'] ?? null) === 0;
+        if (!$opId && !$okByCode) {
             return [
                 'ok'    => false,
                 'error' => $j['Message'] ?? $j['StatusDesc'] ?? 'Kaspi error',
@@ -105,7 +108,7 @@ final class Pay
         }
         return [
             'ok'          => true,
-            'id'          => (string)$d['Id'],
+            'id'          => (string)$opId,
             'amount'      => $d['Amount']       ?? $amount,
             'phoneNumber' => $d['ClientMobile'] ?? $phoneNumber,
             'orderNumber' => $d['OrderNumber']  ?? null,
