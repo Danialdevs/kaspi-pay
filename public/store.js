@@ -153,7 +153,6 @@
     const url = r.qrToken;
     const qrImg = url ? `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(url)}` : '';
     $('qrBox').innerHTML = qrImg ? `<img src="${qrImg}" alt="QR">` : '<p class="text-muted">QR не получен</p>';
-    $('kaspiLink').href = url || '#';
     $('paySum').textContent = formatPrice(r.amount);
     $('payProductName').textContent = r.productName || '';
     show('paySection');

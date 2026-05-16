@@ -85,12 +85,9 @@
           <div class="panel-body text-center">
             <div id="qrBox" class="qr-box my-3"></div>
             <p class="text-muted small mb-1"><span id="paySum">0</span> ₸ · <span id="payProductName">—</span></p>
-            <a id="kaspiLink" href="#" target="_blank" rel="noopener" class="btn btn-primary btn-lg w-100 mt-2">
-              <i class="bi bi-phone"></i> Открыть в Kaspi
-            </a>
-            <p class="text-muted small mt-3">Откройте Kaspi на телефоне и отсканируйте QR. Если не получается — нажмите «Не получается».</p>
+            <p class="text-muted small mt-3">Откройте <b>Kaspi</b> на телефоне и отсканируйте QR. Если не получается — нажмите «Не получается».</p>
             <div class="d-flex flex-column gap-2 mt-3">
-              <button class="btn btn-outline-secondary" onclick="sendInvoiceFallback()" id="fallbackBtn">
+              <button class="btn btn-primary" onclick="sendInvoiceFallback()" id="fallbackBtn">
                 <i class="bi bi-phone-vibrate"></i> Не получается — выставить счёт на телефон
               </button>
               <button class="btn btn-link text-muted" onclick="backToCatalog()">Отменить</button>

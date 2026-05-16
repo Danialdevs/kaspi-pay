@@ -39,6 +39,25 @@ if ($path === '/app.js') {
     exit;
 }
 
+// User uploads (product images) — served from data/uploads/
+if (preg_match('#^/uploads/([a-zA-Z0-9_./-]+)$#', $path, $m)) {
+    $rel = $m[1];
+    if (str_contains($rel, '..')) Http::error('Forbidden', 403);
+    $file = Kaspi\Config::$dataDir . '/uploads/' . $rel;
+    if (!is_file($file)) Http::error('Not Found', 404);
+    $mime = match (pathinfo($file, PATHINFO_EXTENSION)) {
+        'jpg', 'jpeg' => 'image/jpeg',
+        'png'  => 'image/png',
+        'webp' => 'image/webp',
+        'gif'  => 'image/gif',
+        default => 'application/octet-stream',
+    };
+    header('Content-Type: ' . $mime);
+    header('Cache-Control: public, max-age=2592000');
+    readfile($file);
+    exit;
+}
+
 // Static assets (CSS, JS, images under /assets/)
 if (preg_match('#^/assets/([a-zA-Z0-9_./-]+)$#', $path, $m)) {
     $rel = $m[1];

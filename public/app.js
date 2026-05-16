@@ -91,7 +91,12 @@
     if (page === 'shoporders') loadShopOrders();
   };
   window.addEventListener('hashchange', () => navigate(location.hash.replace('#', '') || 'dashboard'));
-  $$('.sidebar-menu a').forEach((a) => a.addEventListener('click', (e) => { e.preventDefault(); navigate(a.dataset.page); }));
+  $$('.sidebar-menu a').forEach((a) => a.addEventListener('click', (e) => {
+    // Ссылки без data-page (например «Открыть магазин») — оставить обычное поведение
+    if (!a.dataset.page) return;
+    e.preventDefault();
+    navigate(a.dataset.page);
+  }));
 
   // ── Sessions ───────────────────────────
   const refreshSessions = async () => {
@@ -365,19 +370,54 @@
 
   // ── Products ───────────────────────────
   let productModal = null;
+  let currentProductImages = [];
+
+  const renderProductImages = () => {
+    const box = $('prodImagesList');
+    if (!currentProductImages.length) { box.innerHTML = '<div class="text-muted small">Фото пока нет</div>'; return; }
+    box.innerHTML = currentProductImages.map((url, i) => `
+      <div class="position-relative" style="width:80px;height:80px">
+        <img src="${escapeAttr(url)}" style="width:80px;height:80px;object-fit:cover;border-radius:6px;border:1px solid var(--border)">
+        ${i === 0 ? '<span class="badge bg-danger position-absolute top-0 start-0 m-1" style="font-size:.6rem">Обложка</span>' : ''}
+        <button type="button" class="btn-close position-absolute top-0 end-0 m-1 bg-light" style="font-size:.55rem;padding:.15rem" onclick="removeProductImage(${i})" title="Убрать"></button>
+      </div>`).join('');
+  };
+  const uploadProductImages = async () => {
+    const input = $('prodImageFile');
+    const files = Array.from(input.files || []);
+    if (!files.length) return;
+    const btn = $('prodUploadBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+    try {
+      for (const f of files) {
+        const fd = new FormData();
+        fd.append('file', f);
+        const res = await fetch('/api/products/upload', { method: 'POST', body: fd, credentials: 'same-origin' });
+        const j = await res.json().catch(() => ({}));
+        if (res.ok && j.ok && j.url) currentProductImages.push(j.url);
+        else setProdErr(j.error || 'Не загрузилось: ' + f.name);
+      }
+      input.value = '';
+      renderProductImages();
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-cloud-upload"></i>';
+    }
+  };
+  const removeProductImage = (idx) => {
+    currentProductImages.splice(idx, 1);
+    renderProductImages();
+  };
+
   const openProductModal = (p = null) => {
     if (!productModal) productModal = new bootstrap.Modal($('productModal'));
     $('prodId').value      = p?.id ?? '';
     $('prodName').value    = p?.name ?? '';
     $('prodPrice').value   = p?.price ?? '';
-    $('prodImage').value   = p?.image_url ?? '';
-    // Extra images: from `images` array (excluding cover) or empty
-    let extras = [];
-    if (Array.isArray(p?.images) && p.images.length) {
-      const cover = p.image_url || p.images[0];
-      extras = p.images.filter((u) => u && u !== cover);
-    }
-    $('prodImages').value = extras.join('\n');
+    currentProductImages = Array.isArray(p?.images) && p.images.length ? [...p.images] : (p?.image_url ? [p.image_url] : []);
+    renderProductImages();
+    $('prodImageFile').value = '';
     $('prodDesc').value    = p?.description ?? '';
     $('prodActive').checked = p ? !!Number(p.active) : true;
     $('productModalTitle').textContent = p ? 'Изменить товар' : 'Новый товар';
@@ -386,9 +426,8 @@
   };
   const saveProduct = async () => {
     const id = parseInt($('prodId').value, 10) || 0;
-    const cover = $('prodImage').value.trim();
-    const extras = $('prodImages').value.split(/[\r\n,]+/).map((s) => s.trim()).filter(Boolean);
-    const images = cover ? [cover, ...extras] : extras;
+    const images = [...currentProductImages];
+    const cover = images[0] || '';
     const payload = {
       name:        $('prodName').value.trim(),
       price:       parseFloat($('prodPrice').value),
@@ -467,6 +506,7 @@
     createQr, createInvoice,
     loadOrders, copyApiKey, regenerateKey,
     openProductModal, saveProduct, editProduct, deleteProduct, loadProducts,
+    uploadProductImages, removeProductImage,
     loadShopOrders,
   });
 
