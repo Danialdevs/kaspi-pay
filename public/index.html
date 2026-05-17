@@ -4,220 +4,153 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Kaspi POS — Магазин</title>
+
+    <!-- Bootstrap 5 + Bootstrap Icons + Font Awesome + AdminLTE 4 -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/overlayscrollbars@2.3.0/styles/overlayscrollbars.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@4.0.0-beta3/dist/css/adminlte.min.css" />
     <link rel="stylesheet" href="/assets/css/admin.css" />
   </head>
-  <body>
+  <body class="layout-fixed sidebar-expand-lg bg-body-tertiary">
 
-    <!-- ─── AUTH GATE (login only — shops created via CLI) ─── -->
+    <!-- ─── AUTH GATE (login only) ─── -->
     <div id="authGate" class="auth-gate hidden">
-      <div class="auth-card">
-        <h4 class="kaspi-red fw-bold mb-1"><i class="bi bi-shop"></i> Kaspi POS</h4>
-        <p class="text-muted small mb-4">Вход в кабинет магазина</p>
-        <label class="form-label small text-muted">Логин магазина</label>
-        <input id="authUsername" type="text" class="form-control mb-2" autocomplete="username" />
-        <label class="form-label small text-muted">Пароль</label>
-        <input id="authPassword" type="password" class="form-control mb-3" autocomplete="current-password" />
-        <button id="authSubmit" class="btn btn-primary w-100" onclick="submitAuth()">Войти</button>
-        <div id="authErr" class="status-bar status-err mt-3 hidden"></div>
-        <p class="text-muted small mt-4 mb-0">Магазин создаётся администратором через CLI:<br><code class="small">php bin/create-shop.php &lt;username&gt;</code></p>
+      <div class="auth-card card border-0 shadow">
+        <div class="card-body p-4">
+          <h4 class="kaspi-red fw-bold mb-1"><i class="bi bi-shop"></i> Kaspi POS</h4>
+          <p class="text-muted small mb-4">Вход в кабинет магазина</p>
+          <label class="form-label small text-muted">Логин магазина</label>
+          <input id="authUsername" type="text" class="form-control mb-2" autocomplete="username" />
+          <label class="form-label small text-muted">Пароль</label>
+          <input id="authPassword" type="password" class="form-control mb-3" autocomplete="current-password" />
+          <button id="authSubmit" class="btn btn-primary w-100" onclick="submitAuth()">Войти</button>
+          <div id="authErr" class="status-bar status-err mt-3 hidden"></div>
+          <p class="text-muted small mt-4 mb-0">Магазин создаётся через CLI:<br><code class="small">php bin/create-shop.php &lt;username&gt;</code></p>
+        </div>
       </div>
     </div>
 
-    <!-- ─── ADMIN APP ─── -->
-    <div id="app" class="app hidden">
-      <aside class="sidebar" id="sidebar">
-        <div class="brand"><i class="bi bi-shop"></i> Kaspi <span class="accent">POS</span></div>
-        <nav class="sidebar-menu">
-          <div class="sidebar-section">Магазин</div>
-          <a href="#dashboard" data-page="dashboard" class="active"><i class="bi bi-speedometer2"></i> Дашборд</a>
-          <a href="#products" data-page="products"><i class="bi bi-box-seam"></i> Товары</a>
-          <a href="#shoporders" data-page="shoporders"><i class="bi bi-bag-check"></i> Заказы</a>
-          <a href="#orders" data-page="orders"><i class="bi bi-card-list"></i> История Каспи</a>
-          <a href="#pos" data-page="pos"><i class="bi bi-credit-card-2-front"></i> Касса</a>
-          <div class="sidebar-section">Интеграция</div>
-          <a href="#sessions" data-page="sessions"><i class="bi bi-phone"></i> Kaspi-кассиры</a>
-          <a href="#settings" data-page="settings"><i class="bi bi-key"></i> API-ключ</a>
-          <div class="sidebar-section">Витрина</div>
-          <a href="#" id="storeLink" target="_blank"><i class="bi bi-box-arrow-up-right"></i> Открыть магазин</a>
-        </nav>
+    <!-- ─── ADMIN APP (AdminLTE 4 layout) ─── -->
+    <div id="app" class="app-wrapper hidden">
+
+      <!-- Header -->
+      <nav class="app-header navbar navbar-expand bg-body">
+        <div class="container-fluid">
+          <ul class="navbar-nav">
+            <li class="nav-item">
+              <a class="nav-link" data-lte-toggle="sidebar" href="#" role="button"><i class="bi bi-list"></i></a>
+            </li>
+            <li class="nav-item d-none d-md-block ms-2">
+              <span class="navbar-text fw-semibold" id="pageTitle">Дашборд</span>
+            </li>
+          </ul>
+          <ul class="navbar-nav ms-auto">
+            <li class="nav-item dropdown user-menu">
+              <a href="#" class="nav-link dropdown-toggle d-flex align-items-center gap-2" data-bs-toggle="dropdown">
+                <span class="user-image bg-danger text-white rounded-circle d-flex align-items-center justify-content-center fw-bold" id="userAvatar" style="width:32px;height:32px">M</span>
+                <span class="d-none d-md-inline" id="userBadge">—</span>
+              </a>
+              <ul class="dropdown-menu dropdown-menu-end">
+                <li><a class="dropdown-item" href="#" id="storeLink" target="_blank"><i class="bi bi-box-arrow-up-right me-2"></i>Открыть магазин</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item text-danger" href="#" onclick="logout(); return false"><i class="bi bi-box-arrow-right me-2"></i>Выйти</a></li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+      </nav>
+
+      <!-- Sidebar -->
+      <aside class="app-sidebar bg-body-secondary shadow" data-bs-theme="dark">
+        <div class="sidebar-brand">
+          <a href="#dashboard" class="brand-link">
+            <i class="bi bi-shop brand-image kaspi-red"></i>
+            <span class="brand-text fw-bold">Kaspi <span class="kaspi-red">POS</span></span>
+          </a>
+        </div>
+        <div class="sidebar-wrapper">
+          <nav class="mt-2">
+            <ul class="nav sidebar-menu flex-column" data-lte-toggle="treeview" role="menu">
+              <li class="nav-header">МАГАЗИН</li>
+              <li class="nav-item"><a href="#dashboard" data-page="dashboard" class="nav-link active"><i class="nav-icon bi bi-speedometer2"></i><p>Дашборд</p></a></li>
+              <li class="nav-item"><a href="#products" data-page="products" class="nav-link"><i class="nav-icon bi bi-box-seam"></i><p>Товары</p></a></li>
+              <li class="nav-item"><a href="#shoporders" data-page="shoporders" class="nav-link"><i class="nav-icon bi bi-bag-check"></i><p>Заказы</p></a></li>
+              <li class="nav-item"><a href="#orders" data-page="orders" class="nav-link"><i class="nav-icon bi bi-card-list"></i><p>История Каспи</p></a></li>
+              <li class="nav-item"><a href="#pos" data-page="pos" class="nav-link"><i class="nav-icon bi bi-credit-card-2-front"></i><p>Касса</p></a></li>
+              <li class="nav-header">ИНТЕГРАЦИЯ</li>
+              <li class="nav-item"><a href="#sessions" data-page="sessions" class="nav-link"><i class="nav-icon bi bi-phone"></i><p>Kaspi-кассиры</p></a></li>
+              <li class="nav-item"><a href="#settings" data-page="settings" class="nav-link"><i class="nav-icon bi bi-key"></i><p>API-ключ</p></a></li>
+            </ul>
+          </nav>
+        </div>
       </aside>
 
-      <div class="main">
-        <header class="topbar">
-          <button class="btn btn-sm btn-outline-secondary menu-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')"><i class="bi bi-list"></i></button>
-          <div class="title" id="pageTitle">Дашборд</div>
-          <div class="user-chip" onclick="logout()">
-            <div class="avatar" id="userAvatar">M</div>
-            <span id="userBadge">—</span>
-            <i class="bi bi-box-arrow-right text-muted ms-2"></i>
+      <!-- Main content -->
+      <main class="app-main">
+        <div class="app-content-header">
+          <div class="container-fluid">
+            <div class="row">
+              <div class="col-sm-6"><h3 class="mb-0" id="pageTitleHeader">Дашборд</h3></div>
+            </div>
           </div>
-        </header>
+        </div>
+        <div class="app-content">
+          <div class="container-fluid">
 
-        <div class="content">
-          <!-- ─── DASHBOARD ─── -->
-          <section data-page="dashboard">
-            <div class="row g-3 mb-3">
-              <div class="col-md-3 col-6"><div class="stat-card"><div class="lbl">Заказов сегодня</div><div class="val" id="statCount">0</div></div></div>
-              <div class="col-md-3 col-6"><div class="stat-card"><div class="lbl">Выручка</div><div class="val" id="statRevenue">0 ₸</div></div></div>
-              <div class="col-md-3 col-6"><div class="stat-card"><div class="lbl">Возвраты</div><div class="val" id="statRefunds">0 ₸</div></div></div>
-              <div class="col-md-3 col-6"><div class="stat-card"><div class="lbl">Кассиров</div><div class="val" id="statCashiers">0</div></div></div>
-            </div>
-
-            <div class="panel card-view">
-              <div class="panel-heading">
-                <h6 class="panel-title txt-dark">Последние операции</h6>
-                <button class="btn btn-sm btn-outline-secondary" onclick="loadOrders()"><i class="bi bi-arrow-clockwise"></i></button>
+            <!-- DASHBOARD -->
+            <section data-page="dashboard">
+              <div class="row g-3 mb-3">
+                <div class="col-md-3 col-6">
+                  <div class="small-box text-bg-danger">
+                    <div class="inner"><p class="lbl small text-uppercase mb-1">Заказов сегодня</p><h3 id="statCount">0</h3></div>
+                    <span class="small-box-icon"><i class="bi bi-bag-check"></i></span>
+                  </div>
+                </div>
+                <div class="col-md-3 col-6">
+                  <div class="small-box text-bg-success">
+                    <div class="inner"><p class="lbl small text-uppercase mb-1">Выручка</p><h3 id="statRevenue">0 ₸</h3></div>
+                    <span class="small-box-icon"><i class="bi bi-cash-coin"></i></span>
+                  </div>
+                </div>
+                <div class="col-md-3 col-6">
+                  <div class="small-box text-bg-warning">
+                    <div class="inner"><p class="lbl small text-uppercase mb-1">Возвраты</p><h3 id="statRefunds">0 ₸</h3></div>
+                    <span class="small-box-icon"><i class="bi bi-arrow-return-left"></i></span>
+                  </div>
+                </div>
+                <div class="col-md-3 col-6">
+                  <div class="small-box text-bg-info">
+                    <div class="inner"><p class="lbl small text-uppercase mb-1">Кассиров</p><h3 id="statCashiers">0</h3></div>
+                    <span class="small-box-icon"><i class="bi bi-phone"></i></span>
+                  </div>
+                </div>
               </div>
-              <div class="panel-body pa-0">
-                <div id="dashRecent"><p class="text-muted small text-center p-4 mb-0">Загрузка…</p></div>
-              </div>
-            </div>
-          </section>
 
-          <!-- ─── ORDERS ─── -->
-          <section data-page="orders" class="hidden">
-            <div class="panel card-view">
-              <div class="panel-heading">
-                <h6 class="panel-title txt-dark">Заказы</h6>
-                <div class="d-flex gap-2 align-items-center">
-                  <select id="ordersSession" class="form-select form-select-sm" style="min-width:200px"></select>
+              <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                  <h3 class="card-title m-0">Последние операции</h3>
                   <button class="btn btn-sm btn-outline-secondary" onclick="loadOrders()"><i class="bi bi-arrow-clockwise"></i></button>
                 </div>
-              </div>
-              <div class="panel-wrapper">
-                <div class="panel-body pa-0">
-                  <div class="table-wrap">
-                    <div class="table-responsive">
-                      <table class="table product-overview border-none" id="ordersTable">
-                        <thead>
-                          <tr>
-                            <th>ID</th>
-                            <th>Дата</th>
-                            <th>Тип</th>
-                            <th>Сумма</th>
-                            <th>Клиент</th>
-                            <th>Статус</th>
-                            <th></th>
-                          </tr>
-                        </thead>
-                        <tbody id="ordersTbody">
-                          <tr><td colspan="7" class="text-center text-muted">Загрузка…</td></tr>
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
+                <div class="card-body p-0">
+                  <div id="dashRecent"><p class="text-muted small text-center p-4 mb-0">Загрузка…</p></div>
                 </div>
               </div>
-            </div>
-          </section>
+            </section>
 
-          <!-- ─── POS (create QR / invoice) ─── -->
-          <section data-page="pos" class="hidden">
-            <div class="row g-3">
-              <div class="col-12">
-                <div class="panel card-view">
-                  <div class="panel-heading">
-                    <h6 class="panel-title txt-dark">Касса</h6>
-                    <select id="posSession" class="form-select form-select-sm" style="max-width:280px"></select>
-                  </div>
-                  <div class="panel-body">
-                    <ul class="nav nav-pills mb-3" role="tablist">
-                      <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#tabQrPanel">QR</button></li>
-                      <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tabInvoicePanel">Счёт по номеру</button></li>
-                    </ul>
-                    <div class="tab-content">
-                      <div class="tab-pane fade show active" id="tabQrPanel">
-                        <div class="row g-2 align-items-end">
-                          <div class="col-md-6">
-                            <label class="form-label small text-muted">Сумма ₸</label>
-                            <input id="qrAmount" type="number" class="form-control" placeholder="0" inputmode="numeric" />
-                          </div>
-                          <div class="col-md-6"><button class="btn btn-primary w-100" onclick="createQr()"><i class="bi bi-qr-code"></i> Создать QR</button></div>
-                        </div>
-                      </div>
-                      <div class="tab-pane fade" id="tabInvoicePanel">
-                        <div class="row g-2 align-items-end">
-                          <div class="col-md-4">
-                            <label class="form-label small text-muted">Телефон клиента</label>
-                            <div class="input-group">
-                              <span class="input-group-text">+7</span>
-                              <input id="invPhone" type="tel" class="form-control" maxlength="10" inputmode="numeric" placeholder="XXXXXXXXXX" />
-                            </div>
-                          </div>
-                          <div class="col-md-3">
-                            <label class="form-label small text-muted">Сумма ₸</label>
-                            <input id="invAmount" type="number" class="form-control" placeholder="0" inputmode="numeric" />
-                          </div>
-                          <div class="col-md-3">
-                            <label class="form-label small text-muted">Комментарий</label>
-                            <input id="invComment" type="text" class="form-control" placeholder="Оплата" />
-                          </div>
-                          <div class="col-md-2"><button class="btn btn-primary w-100" onclick="createInvoice()"><i class="bi bi-receipt"></i> Счёт</button></div>
-                        </div>
-                      </div>
-                    </div>
-                    <div id="posResult" class="mt-3 hidden"></div>
-                  </div>
+            <!-- PRODUCTS -->
+            <section data-page="products" class="hidden">
+              <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                  <h3 class="card-title m-0">Товары</h3>
+                  <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#productModal" onclick="openProductModal()"><i class="bi bi-plus"></i> Добавить</button>
                 </div>
-              </div>
-            </div>
-          </section>
-
-          <!-- ─── SESSIONS (Kaspi cashiers) ─── -->
-          <section data-page="sessions" class="hidden">
-            <div class="panel card-view">
-              <div class="panel-heading">
-                <h6 class="panel-title txt-dark">Kaspi-кассиры</h6>
-                <button class="btn btn-sm btn-primary" onclick="showAddCashier()"><i class="bi bi-plus"></i> Добавить кассира</button>
-              </div>
-              <div class="panel-body pa-0">
-                <div class="table-wrap">
+                <div class="card-body p-0">
                   <div class="table-responsive">
-                    <table class="table product-overview border-none">
-                      <thead>
-                        <tr>
-                          <th>ID</th>
-                          <th>Название</th>
-                          <th>Телефон</th>
-                          <th>Организация</th>
-                          <th>API-токен кассы</th>
-                          <th>Статус</th>
-                          <th></th>
-                        </tr>
-                      </thead>
-                      <tbody id="sessTbody">
-                        <tr><td colspan="7" class="text-center text-muted">Загрузка…</td></tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <!-- ─── PRODUCTS ─── -->
-          <section data-page="products" class="hidden">
-            <div class="panel card-view">
-              <div class="panel-heading">
-                <h6 class="panel-title txt-dark">Товары</h6>
-                <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#productModal" onclick="openProductModal()"><i class="bi bi-plus"></i> Добавить</button>
-              </div>
-              <div class="panel-body pa-0">
-                <div class="table-wrap">
-                  <div class="table-responsive">
-                    <table class="table product-overview border-none">
-                      <thead>
-                        <tr>
-                          <th>ID</th>
-                          <th>Фото</th>
-                          <th>Название</th>
-                          <th>Цена</th>
-                          <th>Активный</th>
-                          <th></th>
-                        </tr>
+                    <table class="table table-hover mb-0">
+                      <thead class="table-light">
+                        <tr><th>ID</th><th>Фото</th><th>Название</th><th>Цена</th><th>Активный</th><th></th></tr>
                       </thead>
                       <tbody id="productsTbody">
                         <tr><td colspan="6" class="text-center text-muted">Загрузка…</td></tr>
@@ -226,31 +159,20 @@
                   </div>
                 </div>
               </div>
-            </div>
-          </section>
+            </section>
 
-          <!-- ─── SHOP ORDERS (свои клиенты) ─── -->
-          <section data-page="shoporders" class="hidden">
-            <div class="panel card-view">
-              <div class="panel-heading">
-                <h6 class="panel-title txt-dark">Заказы клиентов</h6>
-                <button class="btn btn-sm btn-outline-secondary" onclick="loadShopOrders()"><i class="bi bi-arrow-clockwise"></i></button>
-              </div>
-              <div class="panel-body pa-0">
-                <div class="table-wrap">
+            <!-- SHOP ORDERS (customers) -->
+            <section data-page="shoporders" class="hidden">
+              <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                  <h3 class="card-title m-0">Заказы клиентов</h3>
+                  <button class="btn btn-sm btn-outline-secondary" onclick="loadShopOrders()"><i class="bi bi-arrow-clockwise"></i></button>
+                </div>
+                <div class="card-body p-0">
                   <div class="table-responsive">
-                    <table class="table product-overview border-none">
-                      <thead>
-                        <tr>
-                          <th>ID</th>
-                          <th>Дата</th>
-                          <th>Клиент</th>
-                          <th>Телефон</th>
-                          <th>Товар</th>
-                          <th>Сумма</th>
-                          <th>Статус</th>
-                          <th></th>
-                        </tr>
+                    <table class="table table-hover mb-0">
+                      <thead class="table-light">
+                        <tr><th>ID</th><th>Дата</th><th>Клиент</th><th>Телефон</th><th>Товар</th><th>Сумма</th><th>Статус</th><th></th></tr>
                       </thead>
                       <tbody id="shopOrdersTbody">
                         <tr><td colspan="8" class="text-center text-muted">Загрузка…</td></tr>
@@ -259,28 +181,125 @@
                   </div>
                 </div>
               </div>
-            </div>
-          </section>
+            </section>
 
-          <!-- ─── SETTINGS ─── -->
-          <section data-page="settings" class="hidden">
-            <div class="panel card-view">
-              <div class="panel-heading">
-                <h6 class="panel-title txt-dark">API-ключ магазина</h6>
-              </div>
-              <div class="panel-body">
-                <p class="text-muted small">Ключ используется для интеграций (POS-терминал, бэк-офис). Никогда не выкладывай его в публичных местах.</p>
-                <code class="api-key" id="apiKeyOut">—</code>
-                <div class="mt-3 d-flex gap-2">
-                  <button class="btn btn-sm btn-outline-secondary" onclick="copyApiKey()"><i class="bi bi-clipboard"></i> Скопировать</button>
-                  <button class="btn btn-sm btn-outline-danger" onclick="regenerateKey()"><i class="bi bi-arrow-repeat"></i> Перегенерировать</button>
-                  <a class="btn btn-sm btn-outline-secondary ms-auto" href="/docs" target="_blank"><i class="bi bi-file-text"></i> API docs</a>
+            <!-- ORDERS (Kaspi history) -->
+            <section data-page="orders" class="hidden">
+              <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                  <h3 class="card-title m-0">История Каспи</h3>
+                  <div class="d-flex gap-2 align-items-center">
+                    <select id="ordersSession" class="form-select form-select-sm" style="min-width:200px"></select>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="loadOrders()"><i class="bi bi-arrow-clockwise"></i></button>
+                  </div>
+                </div>
+                <div class="card-body p-0">
+                  <div class="table-responsive">
+                    <table class="table table-hover mb-0" id="ordersTable">
+                      <thead class="table-light">
+                        <tr><th>ID</th><th>Дата</th><th>Тип</th><th>Сумма</th><th>Клиент</th><th>Статус</th><th></th></tr>
+                      </thead>
+                      <tbody id="ordersTbody">
+                        <tr><td colspan="7" class="text-center text-muted">Загрузка…</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
-            </div>
-          </section>
+            </section>
+
+            <!-- POS -->
+            <section data-page="pos" class="hidden">
+              <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                  <h3 class="card-title m-0">Касса</h3>
+                  <select id="posSession" class="form-select form-select-sm" style="max-width:280px"></select>
+                </div>
+                <div class="card-body">
+                  <ul class="nav nav-pills mb-3" role="tablist">
+                    <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#tabQrPanel">QR</button></li>
+                    <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tabInvoicePanel">Счёт по номеру</button></li>
+                  </ul>
+                  <div class="tab-content">
+                    <div class="tab-pane fade show active" id="tabQrPanel">
+                      <div class="row g-2 align-items-end">
+                        <div class="col-md-6">
+                          <label class="form-label small text-muted">Сумма ₸</label>
+                          <input id="qrAmount" type="number" class="form-control" placeholder="0" inputmode="numeric" />
+                        </div>
+                        <div class="col-md-6"><button class="btn btn-primary w-100" onclick="createQr()"><i class="bi bi-qr-code"></i> Создать QR</button></div>
+                      </div>
+                    </div>
+                    <div class="tab-pane fade" id="tabInvoicePanel">
+                      <div class="row g-2 align-items-end">
+                        <div class="col-md-4">
+                          <label class="form-label small text-muted">Телефон</label>
+                          <div class="input-group"><span class="input-group-text">+7</span>
+                            <input id="invPhone" type="tel" class="form-control" maxlength="10" inputmode="numeric" placeholder="XXXXXXXXXX" />
+                          </div>
+                        </div>
+                        <div class="col-md-3">
+                          <label class="form-label small text-muted">Сумма ₸</label>
+                          <input id="invAmount" type="number" class="form-control" placeholder="0" inputmode="numeric" />
+                        </div>
+                        <div class="col-md-3">
+                          <label class="form-label small text-muted">Комментарий</label>
+                          <input id="invComment" type="text" class="form-control" placeholder="Оплата" />
+                        </div>
+                        <div class="col-md-2"><button class="btn btn-primary w-100" onclick="createInvoice()"><i class="bi bi-receipt"></i> Счёт</button></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div id="posResult" class="mt-3 hidden"></div>
+                </div>
+              </div>
+            </section>
+
+            <!-- SESSIONS -->
+            <section data-page="sessions" class="hidden">
+              <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                  <h3 class="card-title m-0">Kaspi-кассиры</h3>
+                  <button class="btn btn-sm btn-primary" onclick="showAddCashier()"><i class="bi bi-plus"></i> Добавить кассира</button>
+                </div>
+                <div class="card-body p-0">
+                  <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                      <thead class="table-light">
+                        <tr><th>ID</th><th>Название</th><th>Телефон</th><th>Организация</th><th>API-токен кассы</th><th>Статус</th><th></th></tr>
+                      </thead>
+                      <tbody id="sessTbody">
+                        <tr><td colspan="7" class="text-center text-muted">Загрузка…</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <!-- SETTINGS -->
+            <section data-page="settings" class="hidden">
+              <div class="card">
+                <div class="card-header"><h3 class="card-title m-0">API-ключ магазина</h3></div>
+                <div class="card-body">
+                  <p class="text-muted small">Ключ используется для интеграций (POS-терминал, бэк-офис).</p>
+                  <code class="api-key d-block" id="apiKeyOut">—</code>
+                  <div class="mt-3 d-flex gap-2 flex-wrap">
+                    <button class="btn btn-sm btn-outline-secondary" onclick="copyApiKey()"><i class="bi bi-clipboard"></i> Скопировать</button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="regenerateKey()"><i class="bi bi-arrow-repeat"></i> Перегенерировать</button>
+                    <a class="btn btn-sm btn-outline-secondary ms-auto" href="/docs" target="_blank"><i class="bi bi-file-text"></i> API docs</a>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+          </div>
         </div>
-      </div>
+      </main>
+
+      <footer class="app-footer text-center small text-muted">
+        <strong>Kaspi POS</strong> — оплата через Kaspi Pay
+      </footer>
     </div>
 
     <!-- ─── PRODUCT MODAL ─── -->
@@ -297,17 +316,17 @@
             <input id="prodName" type="text" class="form-control mb-2" placeholder="Кофе латте" />
             <label class="form-label small text-muted">Цена ₸</label>
             <input id="prodPrice" type="number" class="form-control mb-2" placeholder="0" min="1" inputmode="numeric" />
-            <label class="form-label small text-muted">Фото товара (можно несколько, первое — обложка)</label>
+            <label class="form-label small text-muted">Фото (первое = обложка)</label>
             <div id="prodImagesList" class="mb-2 d-flex flex-wrap gap-2"></div>
             <div class="d-flex gap-2 mb-2">
               <input id="prodImageFile" type="file" class="form-control" accept="image/*" multiple />
               <button class="btn btn-outline-secondary" type="button" onclick="uploadProductImages()" id="prodUploadBtn"><i class="bi bi-cloud-upload"></i></button>
             </div>
-            <label class="form-label small text-muted">Описание (опционально)</label>
+            <label class="form-label small text-muted">Описание</label>
             <textarea id="prodDesc" class="form-control mb-3" rows="3" placeholder="—"></textarea>
             <div class="form-check mb-3">
               <input id="prodActive" class="form-check-input" type="checkbox" checked />
-              <label class="form-check-label small" for="prodActive">Активный (виден клиентам)</label>
+              <label class="form-check-label small" for="prodActive">Активный</label>
             </div>
             <button class="btn btn-primary w-100" onclick="saveProduct()"><i class="bi bi-save"></i> Сохранить</button>
             <div id="prodErr" class="status-bar status-err mt-3 hidden"></div>
@@ -328,7 +347,7 @@
             <div id="ccStep1">
               <label class="form-label small text-muted">Название (опционально)</label>
               <input id="ccName" type="text" class="form-control mb-2" placeholder="Магазин на Розыбакиева" />
-              <label class="form-label small text-muted">Телефон кассира Kaspi Pay</label>
+              <label class="form-label small text-muted">Телефон кассира</label>
               <div class="input-group mb-3">
                 <span class="input-group-text">+7</span>
                 <input id="ccPhone" type="tel" class="form-control" maxlength="10" inputmode="numeric" placeholder="XXXXXXXXXX" />
@@ -346,7 +365,9 @@
       </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/overlayscrollbars@2.3.0/browser/overlayscrollbars.browser.es6.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/admin-lte@4.0.0-beta3/dist/js/adminlte.min.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

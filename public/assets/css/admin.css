@@ -1,202 +1,57 @@
-/* ─────────────────────────────────────────────────────────────────
-   Kaspi POS admin theme. Hexa-style (panel.card-view / product-overview)
-   ───────────────────────────────────────────────────────────────── */
+/* Kaspi POS — Kaspi-red overrides поверх AdminLTE 4 */
 
 :root {
   --kaspi: #e31e24;
   --kaspi-dark: #b8181d;
-
-  --sidebar-bg: #2b3245;
-  --sidebar-bg-darker: #252b3b;
-  --sidebar-fg: #cdd3df;
-  --sidebar-fg-muted: #8b93ab;
-  --sidebar-fg-active: #ffffff;
-  --sidebar-section: #6c7390;
-  --sidebar-divider: #3b4358;
-
-  --topbar-bg: #ffffff;
-  --topbar-border: #e3e7ef;
-
-  --bg: #f1f4f9;
-  --border: #e3e7ef;
-  --txt-dark: #2b3245;
-  --txt-muted: #8892a6;
-
-  --panel-bg: #ffffff;
-  --panel-shadow: 0 1px 2px rgba(20, 30, 60, .04);
-  --panel-radius: 6px;
-
-  --table-head-bg: #fafbfd;
-  --table-head-fg: #8892a6;
-
-  --success: #1e7e44;
-  --warning: #b8860b;
-  --danger:  #b8181d;
-  --info:    #1c5fb8;
-
-  --success-soft: #e7f7ef;
-  --warning-soft: #fff5e0;
-  --danger-soft:  #fdecee;
-  --info-soft:    #e7f0fb;
-
-  --status-info-bg:    #cfe2ff;
-  --status-info-fg:    #084298;
-  --status-info-bd:    #9ec5fe;
-  --status-success-bg: #d1e7dd;
-  --status-success-fg: #0a3622;
-  --status-success-bd: #a3cfbb;
-  --status-err-bg:     #f8d7da;
-  --status-err-fg:     #58151c;
-  --status-err-bd:     #f1aeb5;
 }
 
-/* ── Reset / base ──────────────────────────────────────────────── */
-html, body { height: 100%; }
-body {
-  margin: 0;
-  background: var(--bg);
-  color: var(--txt-dark);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
-  font-size: 14px;
-  line-height: 1.5;
-}
+/* compat (app.js использует .hidden) */
 .hidden { display: none !important; }
 
-/* ── Layout shell ──────────────────────────────────────────────── */
-.app { display: flex; min-height: 100vh; }
-.sidebar {
-  width: 240px;
-  background: var(--sidebar-bg);
-  color: var(--sidebar-fg);
-  flex-shrink: 0;
-  display: flex; flex-direction: column;
+.kaspi-red { color: var(--kaspi) !important; }
+
+/* Kaspi-red primary button */
+.btn.btn-primary {
+  background: var(--kaspi);
+  border-color: var(--kaspi);
 }
-.sidebar .brand {
-  padding: 18px 22px;
-  font-weight: 700;
-  font-size: 1.05rem;
-  color: #fff;
-  border-bottom: 1px solid var(--sidebar-divider);
-  background: var(--sidebar-bg-darker);
-  letter-spacing: .02em;
-}
-.sidebar .brand .accent { color: var(--kaspi); }
-.sidebar-menu { padding: 14px 0; flex: 1; }
-.sidebar-menu a {
-  display: flex; align-items: center; gap: 12px;
-  padding: 11px 22px;
-  color: var(--sidebar-fg);
-  text-decoration: none;
-  font-size: .92rem;
-  border-left: 3px solid transparent;
-  transition: background .12s, color .12s, border-color .12s;
-}
-.sidebar-menu a:hover { background: #353c54; color: #fff; }
-.sidebar-menu a.active {
-  background: #353c54;
-  color: var(--sidebar-fg-active);
-  border-left-color: var(--kaspi);
-}
-.sidebar-menu a i, .sidebar-menu a .bi { font-size: 1rem; width: 18px; text-align: center; }
-.sidebar-section {
-  padding: 18px 22px 6px;
-  color: var(--sidebar-section);
-  text-transform: uppercase;
-  letter-spacing: .08em;
-  font-size: .7rem;
+.btn.btn-primary:hover,
+.btn.btn-primary:focus,
+.btn.btn-primary:active,
+.btn.btn-primary:not(:disabled):not(.disabled):active,
+.btn.btn-primary:not(:disabled):not(.disabled).active {
+  background: var(--kaspi-dark);
+  border-color: var(--kaspi-dark);
 }
 
-.main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-.topbar {
-  background: var(--topbar-bg);
-  border-bottom: 1px solid var(--topbar-border);
-  padding: 10px 24px;
-  display: flex; align-items: center; gap: 16px;
-  box-shadow: 0 1px 0 rgba(20,30,60,.02);
+/* Active sidebar item = Kaspi red */
+.app-sidebar .sidebar-menu .nav-link.active {
+  background: var(--kaspi) !important;
+  color: #fff !important;
 }
-.topbar .title { font-weight: 600; font-size: 1rem; flex-grow: 1; }
-.topbar .user-chip {
-  display: flex; align-items: center; gap: 8px;
-  padding: 4px 12px;
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  background: #fafbfd;
-  cursor: pointer;
-  font-size: .85rem;
-  transition: background .12s;
-}
-.topbar .user-chip:hover { background: #f1f4f9; }
-.topbar .user-chip .avatar {
-  width: 26px; height: 26px;
-  border-radius: 50%;
-  background: var(--kaspi); color: #fff;
+
+/* Login gate (полноэкранный) */
+.auth-gate {
+  position: fixed; inset: 0;
   display: flex; align-items: center; justify-content: center;
-  font-weight: 600; font-size: .8rem;
+  background: var(--bs-body-bg, #f4f6f9);
+  padding: 24px;
+  z-index: 10;
 }
+.auth-card { width: 100%; max-width: 380px; }
 
-.content { padding: 22px 24px; }
-
-/* ── Panel (orders.php-style) ──────────────────────────────────── */
-.panel {
-  background: var(--panel-bg);
-  border: 1px solid var(--border);
-  border-radius: var(--panel-radius);
-  margin-bottom: 18px;
-}
-.panel.card-view { box-shadow: var(--panel-shadow); }
-.panel-default { /* alias */ }
-.panel-heading {
-  padding: 14px 18px;
-  border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 12px;
-}
-.panel-title {
-  font-size: .95rem;
-  font-weight: 600;
-  color: var(--txt-dark);
-  margin: 0;
-}
-.txt-dark { color: var(--txt-dark) !important; }
-.txt-muted { color: var(--txt-muted) !important; }
-.pull-left { float: left; }
-.pull-right { float: right; }
-.clearfix::after { content: ''; display: table; clear: both; }
-
-.panel-wrapper { }
-.panel-body { padding: 18px; }
-.pa-0 { padding: 0 !important; }
-.pa-15 { padding: 15px !important; }
-
-/* ── Tables ────────────────────────────────────────────────────── */
-.table-wrap { overflow: hidden; }
-.table.product-overview {
+/* Status bars (app.js renders these for errors / messages) */
+.status-bar {
+  padding: .55rem .8rem;
+  border-radius: .35rem;
   font-size: .88rem;
-  margin: 0;
-  width: 100%;
-  border-collapse: collapse;
+  border: 1px solid transparent;
 }
-.table.product-overview thead th {
-  background: var(--table-head-bg);
-  color: var(--table-head-fg);
-  font-weight: 600;
-  text-transform: uppercase;
-  font-size: .72rem;
-  letter-spacing: .04em;
-  border: 0;
-  padding: 12px 18px;
-  text-align: left;
-}
-.table.product-overview tbody td {
-  padding: 12px 18px;
-  border-top: 1px solid var(--border);
-  vertical-align: middle;
-}
-.table.product-overview.border-none td,
-.table.product-overview.border-none th { border-color: var(--border); }
-.table.product-overview tbody tr:hover { background: #fafbfd; }
+.status-info    { background: #cfe2ff; color: #084298; border-color: #9ec5fe; }
+.status-success { background: #d1e7dd; color: #0a3622; border-color: #a3cfbb; }
+.status-err     { background: #f8d7da; color: #58151c; border-color: #f1aeb5; }
 
-/* ── Badges ────────────────────────────────────────────────────── */
+/* Soft badges (для статусов в таблицах) */
 .badge-soft {
   padding: .25rem .55rem;
   border-radius: 4px;
@@ -206,124 +61,25 @@ body {
   letter-spacing: .03em;
   display: inline-block;
 }
-.badge-soft-success { background: var(--success-soft); color: var(--success); }
-.badge-soft-warning { background: var(--warning-soft); color: var(--warning); }
-.badge-soft-danger  { background: var(--danger-soft);  color: var(--danger); }
-.badge-soft-info    { background: var(--info-soft);    color: var(--info); }
+.badge-soft-success { background: #e7f7ef; color: #1e7e44; }
+.badge-soft-warning { background: #fff5e0; color: #b8860b; }
+.badge-soft-danger  { background: #fdecee; color: #b8181d; }
+.badge-soft-info    { background: #e7f0fb; color: #1c5fb8; }
 
-/* ── Buttons (Kaspi-red primary) ───────────────────────────────── */
-.btn.btn-primary {
-  background: var(--kaspi);
-  border-color: var(--kaspi);
-}
-.btn.btn-primary:hover, .btn.btn-primary:focus, .btn.btn-primary:active,
-.btn.btn-primary:not(:disabled):not(.disabled):active,
-.btn.btn-primary:not(:disabled):not(.disabled).active {
-  background: var(--kaspi-dark);
-  border-color: var(--kaspi-dark);
-}
-.kaspi-red { color: var(--kaspi) !important; }
-
-/* ── Stats cards ───────────────────────────────────────────────── */
-.stat-card {
-  padding: 16px 18px;
-  background: var(--panel-bg);
-  border: 1px solid var(--border);
-  border-radius: var(--panel-radius);
-  box-shadow: var(--panel-shadow);
-}
-.stat-card .lbl {
-  color: var(--txt-muted);
-  font-size: .72rem;
-  text-transform: uppercase;
-  letter-spacing: .05em;
-  font-weight: 600;
-}
-.stat-card .val {
-  font-size: 1.45rem;
-  font-weight: 700;
-  color: var(--txt-dark);
-  margin-top: 6px;
-}
-
-/* ── Auth gate (login) ─────────────────────────────────────────── */
-.auth-gate {
-  min-height: 100vh;
-  display: flex; align-items: center; justify-content: center;
-  background: var(--bg);
-  padding: 24px;
-}
-.auth-card {
-  width: 100%;
-  max-width: 380px;
-  background: var(--panel-bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 28px;
-  box-shadow: 0 4px 24px rgba(20, 30, 60, .06);
-}
-
-/* ── Status bars (inline messages) ────────────────────────────── */
-.status-bar {
-  padding: .6rem .85rem;
-  border-radius: 4px;
-  font-size: .88rem;
-  border: 1px solid transparent;
-}
-.status-info    { background: var(--status-info-bg);    color: var(--status-info-fg);    border-color: var(--status-info-bd); }
-.status-success { background: var(--status-success-bg); color: var(--status-success-fg); border-color: var(--status-success-bd); }
-.status-err     { background: var(--status-err-bg);     color: var(--status-err-fg);     border-color: var(--status-err-bd); }
-
-/* ── API-key block ─────────────────────────────────────────────── */
+/* API-key block */
 .api-key {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: .78rem;
   word-break: break-all;
   padding: 10px 12px;
   background: #f6f8fb;
-  border: 1px solid var(--border);
+  border: 1px solid var(--bs-border-color);
   border-radius: 4px;
   display: block;
 }
 
-/* ── Pill nav (POS tabs) ───────────────────────────────────────── */
-.nav-pills .nav-link {
-  color: var(--txt-muted);
-  border-radius: 4px;
-  padding: .4rem 1rem;
-  font-size: .9rem;
-  font-weight: 500;
-}
-.nav-pills .nav-link.active {
-  background: var(--kaspi);
-  color: #fff;
-}
-
-/* ── Loader (small inline spinner) ─────────────────────────────── */
-.loader {
-  display: inline-block;
-  width: .9em; height: .9em;
-  border: 2px solid currentColor;
-  border-bottom-color: transparent;
-  border-radius: 50%;
-  animation: ksp-spin .8s linear infinite;
-  vertical-align: -2px;
-  margin-left: .4em;
-}
-@keyframes ksp-spin { to { transform: rotate(360deg); } }
-
-/* ── Responsive ────────────────────────────────────────────────── */
-.menu-toggle { display: none; }
-@media (max-width: 768px) {
-  .sidebar {
-    position: fixed;
-    transform: translateX(-100%);
-    transition: transform .25s;
-    z-index: 100;
-    height: 100%;
-  }
-  .sidebar.open { transform: none; }
-  .menu-toggle { display: inline-flex !important; }
-  .stat-card .val { font-size: 1.15rem; }
-  .content { padding: 14px 16px; }
+/* Small-box hint label */
+.small-box .inner .lbl {
+  opacity: .85;
+  letter-spacing: .05em;
 }
